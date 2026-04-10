@@ -77,7 +77,7 @@ Hard fails are fixed before you see the text. Everything else comes back as advi
 | Dimension | Rating | Notes | Proposed improvement |
 |-----------|--------|-------|---------------------|
 | Naming | Opportunity | "The policy created a strange dynamic where everyone pretends the rules matter" describes a pattern in 2 sentences but never labels it | Name it: "compliance theater" — compresses the dynamic into something portable |
-| Aphoristic destination | Opportunity | Piece ends with "This matters because it affects everyone" — a generic summary that could close any article | End on the mechanism: "Four inspectors for 2,000 facilities. That's not a staffing decision, it's a confession." |
+| Aphoristic destination | Opportunity | Piece ends with "This matters because it affects everyone" — a generic summary that could close any article | End on the mechanism: "Four inspectors for 2,000 facilities. A confession dressed up as a staffing decision." |
 | Central-point dwelling | Strong | Enforcement failure gets too much of the piece on purpose and comes back twice. That's the right call. | |
 | Structural literary devices | Opportunity | Nothing in here is doing double duty. Every sentence means one thing and stops. | The committee lifecycle ("conversation → process → ritual") could structure the whole analysis instead of sitting in one paragraph |
 | Human-moment anchoring | Strong | Opens with one inspector walking into one facility. The abstraction earns its space after that. | |
