@@ -6,12 +6,25 @@ A Claude Code plugin that writes in your voice.
 
 Prose-craft extracts your distinctive writing patterns from samples of your own writing and uses them to generate text that sounds like you, not like AI. It uses a modular register system, so you can have different voices for different contexts (personal essays vs. advocacy copy, for example), and a dual review gate that catches AI patterns and evaluates craft depth before you see the output.
 
+## Installation
+
+Paste this repo's URL into the Claude Code desktop app:
+
+```
+https://github.com/TimSimpsonJr/prose-craft
+```
+
+Claude Code will install it as a plugin automatically. You can also install from the CLI:
+
+```bash
+/install-plugin https://github.com/TimSimpsonJr/prose-craft
+```
+
 ## Quick start
 
-1. Clone this repo
+1. Install the plugin (see above)
 2. Follow the setup process in `setup/extraction-guide.md` to create your voice registers (~30 minutes, requires Claude Sonnet access)
-3. Test it out: `claude --plugin-dir /path/to/prose-craft`
-4. When satisfied, install permanently using Claude Code's plugin management features
+3. Once your registers are configured, the skill activates automatically whenever you ask Claude to write text for outside consumption
 
 ## How it works
 
