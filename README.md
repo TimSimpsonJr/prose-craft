@@ -62,13 +62,25 @@ After generating text, the skill dispatches two review agents in parallel before
 - Structural literary devices (metaphors that carry argumentative weight, not decoration)
 - Human-moment anchoring (abstractions grounded in specific people or scenes)
 
-Hard fails are fixed before you see the text. Everything else comes back as an advisory table:
+Hard fails are fixed before you see the text. Everything else comes back as advisory tables from each agent.
+
+**Prose review advisory table:**
 
 | # | Line | Pattern | Current | Proposed fix |
 |---|------|---------|---------|--------------|
-| 1 | "The policy created a strange dynamic where..." | Naming opportunity | Dynamic described in 2 sentences but never labeled | Name it: "compliance theater" — a policy exists on paper but nobody enforces it |
-| 2 | "This matters because it affects everyone." | Softened ending | Generic conclusion that could end any article | End on the mechanism: "Four inspectors for 2,000 facilities. That's not a staffing decision, it's a confession." |
-| 3 | "Furthermore, the committee decided..." | Mid-tier AI vocabulary | "Furthermore" is a dead AI transition | Cut it. Start the sentence at "The committee decided..." |
+| 1 | "Furthermore, the committee decided..." | Mid-tier AI vocabulary | "Furthermore" is a dead AI transition | Cut it. Start the sentence at "The committee decided..." |
+| 2 | "This is important because..." | Frictionless transition | 4 consecutive smooth transitions, zero rough joins | Drop the transition. Start the next paragraph mid-thought and let the reader fill the gap. |
+| 3 | "The system was efficient. The system was fast. The system was reliable." | Structural monotony | 3 consecutive sentences with identical architecture | Vary: "The system was efficient. Fast, too. But reliable is the word that kept showing up in the post-mortems." |
+
+**Craft review advisory table:**
+
+| Dimension | Rating | Notes | Proposed improvement |
+|-----------|--------|-------|---------------------|
+| Naming | Opportunity | "The policy created a strange dynamic where everyone pretends the rules matter" describes a pattern in 2 sentences but never labels it | Name it: "compliance theater" — compresses the dynamic into something portable |
+| Aphoristic destination | Opportunity | Piece ends with "This matters because it affects everyone" — a generic summary that could close any article | End on the mechanism: "Four inspectors for 2,000 facilities. That's not a staffing decision, it's a confession." |
+| Central-point dwelling | Strong | The enforcement failure gets disproportionate space and returns twice — good | |
+| Structural literary devices | Opportunity | Technically clean but literarily flat — no metaphors doing argumentative work | The committee lifecycle ("conversation → process → ritual") could structure the analysis instead of sitting in one paragraph |
+| Human-moment anchoring | Strong | Opens with a specific inspector visiting a specific facility — grounds the abstraction | |
 
 You accept, reject, or modify each row individually.
 
