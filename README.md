@@ -69,8 +69,8 @@ Hard fails are fixed before you see the text. Everything else comes back as advi
 | # | Line | Pattern | Current | Proposed fix |
 |---|------|---------|---------|--------------|
 | 1 | "Furthermore, the committee decided..." | Mid-tier AI vocabulary | "Furthermore" is a dead AI transition | Cut it. Start the sentence at "The committee decided..." |
-| 2 | "This is important because..." | Frictionless transition | 4 consecutive smooth transitions, zero rough joins | Drop the transition. Start the next paragraph mid-thought and let the reader fill the gap. |
-| 3 | "The system was efficient. The system was fast. The system was reliable." | Structural monotony | 3 consecutive sentences with identical architecture | Vary: "The system was efficient. Fast, too. But reliable is the word that kept showing up in the post-mortems." |
+| 2 | "This is important because..." | Frictionless transition | 4 transitions in a row and none of them feel abrupt | Drop the transition. Start the next paragraph mid-thought and let the reader fill the gap. |
+| 3 | "The system was efficient. The system was fast. The system was reliable." | Structural monotony | 3 sentences in a row with the same shape | Vary: "The system was efficient. Fast, too. But reliable is the word that kept showing up in the post-mortems." |
 
 **Craft review advisory table:**
 
@@ -78,9 +78,9 @@ Hard fails are fixed before you see the text. Everything else comes back as advi
 |-----------|--------|-------|---------------------|
 | Naming | Opportunity | "The policy created a strange dynamic where everyone pretends the rules matter" describes a pattern in 2 sentences but never labels it | Name it: "compliance theater" — compresses the dynamic into something portable |
 | Aphoristic destination | Opportunity | Piece ends with "This matters because it affects everyone" — a generic summary that could close any article | End on the mechanism: "Four inspectors for 2,000 facilities. That's not a staffing decision, it's a confession." |
-| Central-point dwelling | Strong | The enforcement failure gets disproportionate space and returns twice — good | |
-| Structural literary devices | Opportunity | Technically clean but literarily flat — no metaphors doing argumentative work | The committee lifecycle ("conversation → process → ritual") could structure the analysis instead of sitting in one paragraph |
-| Human-moment anchoring | Strong | Opens with a specific inspector visiting a specific facility — grounds the abstraction | |
+| Central-point dwelling | Strong | Enforcement failure gets too much of the piece on purpose and comes back twice. That's the right call. | |
+| Structural literary devices | Opportunity | Nothing in here is doing double duty. Every sentence means one thing and stops. | The committee lifecycle ("conversation → process → ritual") could structure the whole analysis instead of sitting in one paragraph |
+| Human-moment anchoring | Strong | Opens with one inspector walking into one facility. The abstraction earns its space after that. | |
 
 You accept, reject, or modify each row individually.
 
