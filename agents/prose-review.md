@@ -38,6 +38,8 @@ Specific drift patterns to watch for:
 - **TED Talk naming announcements:** The feature description may call for naming patterns or concepts. Flag when the text announces the name with fanfare ("I call this the X principle" or "There's a name for this: X") instead of just starting to use the term.
 - **Self-affirming transitions:** Transitions that congratulate the argument ("And this is where it gets interesting" / "This is the crucial part") instead of just making the next point.
 - **Softened endings:** The feature description may call for anti-conclusion or blunt terminals, but the text wraps up with a warm, encouraging, or summarizing final paragraph.
+- **Retrospective narrator:** The text steps above the timeline to announce discoveries from the future: "I'd later call this," "What fell out of the analysis," "I'd later learn." The feature description may call for writing from inside the experience. Flag when the text names or frames something from retrospective distance instead of encountering it in the moment.
+- **Promotional confidence on own work:** The text makes confident capability claims about the writer's own tool, project, or output without hedging. The feature description may call for genuine hedging. Flag claims like "generates text in your voice" or "produces genuinely good output" where the writer would naturally say "close to your voice" or "as good as I could get it."
 
 Report voice drift findings as advisories (not hard fails) in the advisory table.
 

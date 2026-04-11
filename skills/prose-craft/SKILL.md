@@ -102,7 +102,9 @@ Don't let transitions be too smooth either. Human writing has rough joins. Somet
 - "Forget X. This is Y." / "Less X, more Y."
 - "I don't mean X... I mean Y."
 - ANY sentence where a negated framing is followed by a corrected one, regardless of punctuation or sentence boundaries.
-- If even ONE of these appears, delete the negation and just state the positive claim.
+- If even ONE of these appears, fix it. Two options:
+  - **State the positive claim directly.** Cut the negation entirely.
+  - **Reframe as simultaneous.** Instead of "not X, it's Y," write "X and Y at the same time." e.g., "The writing got better and more detectable at the same time" instead of "More instructions didn't make the writing more human. It made it more detectably algorithmic."
 
 ### Em dashes (HARD FAIL)
 
@@ -145,6 +147,8 @@ Use the Agent tool to launch TWO agents in parallel:
 
 Wait for both agents to return.
 
+**Snapshot:** Before processing results, invoke the `prose-craft-learn` skill with `snapshot post-review` to save the current text and review findings.
+
 **Processing results:**
 
 - **Hard fails** (banned phrases, fatal pattern, em dashes, ChatGPT-isms): fix these silently before presenting to user.
@@ -155,3 +159,5 @@ Wait for both agents to return.
 | 1 | [quote] | [pattern name] | [the current text] | [a proposed replacement] |
 
 The user accepts, rejects, or modifies each row individually.
+
+**Snapshot:** After all advisory rows have been processed, invoke the `prose-craft-learn` skill with `snapshot post-fixes` to save the current text.

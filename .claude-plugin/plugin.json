@@ -1,5 +1,5 @@
 {
   "name": "prose-craft",
   "version": "2.0.0",
-  "description": "Voice-driven prose quality system with modular registers, architectural craft rules, and a dual review gate for AI pattern detection and craft depth."
+  "description": "Voice-driven prose quality system with modular registers, architectural craft rules, a dual review gate for AI pattern detection and craft depth, and a learning loop that sharpens rules from your edits."
 }
