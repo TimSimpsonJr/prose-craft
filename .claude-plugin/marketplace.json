@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "prose-craft",
+  "description": "Voice-driven prose quality system with modular registers and learning loop.",
+  "owner": {
+    "name": "Tim Simpson",
+    "url": "https://github.com/TimSimpsonJr"
+  },
+  "plugins": [
+    {
+      "name": "prose-craft",
+      "description": "Voice registers, craft rules, dual review gate, and learning loop.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
