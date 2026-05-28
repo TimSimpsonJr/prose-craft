@@ -11,7 +11,7 @@ Checks:
   em_dash        em dashes (the literal character, or a bare "--" not inside a longer run)
   caps_phrase    two or more consecutive ALL-CAPS words (a single one is allowed advocacy)
   colon_inline   a colon followed by inline elaboration (a colon introducing a list is fine)
-  banned_phrase  literal banned phrases from banned_phrases.txt (word-boundary, case-insensitive)
+  banned_phrase  literal banned phrases from banned_phrases.txt (boundary-aware via lookaround, case-insensitive)
 """
 
 import json
@@ -34,7 +34,7 @@ def count_violations(text: str) -> dict:
     colon_inline = len(re.findall(r":\s+(?![\n\-\*\d])", text))
     low = text.lower()
     banned_phrase = sum(
-        len(re.findall(r"\b" + re.escape(p) + r"\b", low)) for p in BANNED
+        len(re.findall(r"(?<!\w)" + re.escape(p) + r"(?!\w)", low)) for p in BANNED
     )
     return {
         "em_dash": em_dash,

@@ -57,6 +57,12 @@ def test_banned_phrase_multiword_still_matches():
     assert count_violations("it's worth noting that this works")["banned_phrase"] == 1
 
 
+def test_banned_phrase_with_trailing_punctuation_matches():
+    # phrases ending in punctuation (e.g. "are you paying attention?") must still match;
+    # a trailing \b after "?" would fail, so the matcher uses lookarounds
+    assert count_violations("Are you paying attention?")["banned_phrase"] == 1
+
+
 def test_cli_no_args_exits_2():
     result = _run_cli()
     assert result.returncode == 2
