@@ -11,7 +11,7 @@ Checks:
   em_dash        em dashes (the literal character, or a bare "--" not inside a longer run)
   caps_phrase    two or more consecutive ALL-CAPS words (a single one is allowed advocacy)
   colon_inline   a colon followed by inline elaboration (a colon introducing a list is fine)
-  banned_phrase  literal banned phrases from banned_phrases.txt (substring, case-insensitive)
+  banned_phrase  literal banned phrases from banned_phrases.txt (word-boundary, case-insensitive)
 """
 
 import json
@@ -33,7 +33,9 @@ def count_violations(text: str) -> dict:
     em_dash = text.count("—") + len(re.findall(r"(?<!-)--(?!-)", text))
     colon_inline = len(re.findall(r":\s+(?![\n\-\*\d])", text))
     low = text.lower()
-    banned_phrase = sum(low.count(p) for p in BANNED)
+    banned_phrase = sum(
+        len(re.findall(r"\b" + re.escape(p) + r"\b", low)) for p in BANNED
+    )
     return {
         "em_dash": em_dash,
         "caps_phrase": caps_phrase,
@@ -47,10 +49,28 @@ def introduced_new_violation(before: str, after: str) -> bool:
     return any(a[k] > b[k] for k in a)
 
 
-if __name__ == "__main__":
-    if sys.argv[1] == "--diff":
-        before = pathlib.Path(sys.argv[2]).read_text(encoding="utf-8")
-        after = pathlib.Path(sys.argv[3]).read_text(encoding="utf-8")
+USAGE = "usage: discipline_check.py <file> | discipline_check.py --diff <before> <after>"
+
+
+def _read(path: str) -> str:
+    """Read a file, or print a uniform JSON error to stdout and exit 1 if missing."""
+    try:
+        return pathlib.Path(path).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        print(json.dumps({"error": f"file not found: {path}"}))
+        sys.exit(1)
+
+
+def main(argv: list) -> None:
+    if len(argv) < 1:
+        print(USAGE, file=sys.stderr)
+        sys.exit(2)
+    if argv[0] == "--diff":
+        if len(argv) < 3:
+            print(USAGE, file=sys.stderr)
+            sys.exit(2)
+        before = _read(argv[1])
+        after = _read(argv[2])
         print(
             json.dumps(
                 {
@@ -60,5 +80,8 @@ if __name__ == "__main__":
             )
         )
     else:
-        text = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
-        print(json.dumps(count_violations(text)))
+        print(json.dumps(count_violations(_read(argv[0]))))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
