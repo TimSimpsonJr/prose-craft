@@ -154,6 +154,7 @@ Wait for both agents to return.
 **Processing results:**
 
 - **Hard fails** (banned phrases, fatal pattern, em dashes, ChatGPT-isms): fix these silently before presenting to user.
+  - **Fatal-pattern re-check (independent).** After silently rewriting any fatal-pattern hard fail, dispatch the `fatal-pattern-recheck` agent (model: sonnet) on the rewritten passage. This MUST be a separate Agent dispatch from the one that wrote the rewrite (separation of proposer and checker). If it returns `FAIL`, redo the rewrite and re-check; if a second attempt still fails, escalate to the user with the offending quote rather than presenting text with a surviving fatal pattern.
 - **All other findings**: present in an advisory table below the text:
 
 | # | Line | Pattern | Current | Proposed fix |
