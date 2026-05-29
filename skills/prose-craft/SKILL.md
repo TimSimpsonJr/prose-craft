@@ -30,6 +30,8 @@ Example format:
 
 The register's voice feature description is the primary voice instruction. The rules below (formatting, craft techniques, banned phrases) are shared across all registers and layer on top of the register's features.
 
+Also read the active register's `## Demonstrated Edits` section if it has one. These are validated before/after exemplars (pipeline output vs. the version that won the learning gate). Treat them as concrete demonstrations of the voice alongside the feature description: imitate what the "after" versions *do*, never copy them verbatim.
+
 ## Source Material
 
 When the user provides source material (conversation transcripts, research notes, outlines, links):
