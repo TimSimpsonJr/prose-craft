@@ -10,6 +10,25 @@
 
 ---
 
+## Execution status & handoff (read first)
+
+**As of 2026-05-28, branch `skillopt-learning-loop`.** This plan was produced and Task 1 executed in a prior session; the rest is handed to a fresh session for interactive execution.
+
+**Done:** Task 1 (discipline-check script) — TDD, 14/14 tests green, spec + code-quality reviewed. Commits `92e83cb` (script) → `6413915` (CLI hardening + word-boundary matching) → `0598927` (lookaround boundaries). The design doc and this plan are committed at `57648dd`.
+
+**Start here:** Task 2. Tasks 2–14 remain. No PR yet — the branch accumulates and the single PR comes at Task 14.
+
+**Carry these forward (not fully spelled out in the task bodies):**
+- **Do not mutate live plugin data without the user's explicit go-ahead.** Tasks that write the installed copy (`C:\Users\tim\.claude\plugins\cache\local\prose-craft\2.0.0\`) — Task 2's accumulator migration over 23 real observations, Task 6's edits to the advocacy/personal/fiction registers the user actively writes with, Tasks 3/9/12's splits and logs — touch un-versioned data the user depends on. Confirm before each.
+- **Review proportionally.** Task 1 was real code and earned full TDD + two-stage review. The rest are markdown prompt edits and procedures; a spec-check (does the prompt say what the plan asks?) plus a dry-run is enough. Don't wrap pytest ceremony around prose edits.
+- **Headless verification is limited.** "Verify by dry-run" means running the loop on a real batch, which needs the plugin reinstalled and the user's pairwise judgment. Prompt edits written without that are speculative until exercised.
+- **Task 1 deferrals → Task 13 tuning:** the discipline script's caps-adjacency and en-dash heuristics, plus any banned-phrase false positives, get tuned against real text during the bootstrap.
+- **Briefs are thick and skill-entangled** (see Task 10): strip the copied voice section and pre-named concepts before using a deflocksc design doc as a regeneration brief.
+
+**Kickoff for the fresh session:** load this plan + `docs/plans/2026-05-28-skillopt-learning-loop-design.md`, invoke `superpowers:executing-plans`, start at Task 2.
+
+---
+
 ## Implementation decisions (override before starting if you disagree)
 
 1. **Claude-native, not a standalone program.** The loop runs in a Claude Code session. Rationale: the whole plugin is prompt-driven, the taste gate needs a human in the loop, and the corpus is ~12 pieces — a batch program is unjustified. *If you want a standalone Python orchestrator instead, this plan changes substantially.*
