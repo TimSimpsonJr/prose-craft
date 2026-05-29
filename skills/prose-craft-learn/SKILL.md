@@ -172,12 +172,19 @@ For "modify" decisions, apply the user's modified version instead of the agent's
 
 After all recommendations have been processed, update `${CLAUDE_PLUGIN_ROOT}/learning/accumulator.md`.
 
+The accumulator is the **optimizer-side slow record**, not a graduation gate. Its observations are *evidence the learn-review agent uses to propose candidate edits* (see `agents/learn-review.md`); that agent's minibatch reflection decides reusable-vs-anecdotal directly. An observation is **never promoted to a rule change by recurrence count**. Promotion happens only when a proposed edit passes the held-out gate (the gate step in Mode 2 below).
+
 The accumulator file format:
 
 ```markdown
 # Accumulator
 
 staleness_threshold: 5
+
+## Longitudinal Guidance (PROTECTED — step-level edits MUST NOT modify this)
+- craft-review is intentionally high-recall; rejection is expected; do NOT tune its triggers down.
+- Discipline wins on banned patterns: never restore em-dashes / fatal-pattern from a source corpus even if an influence uses them.
+- User regularization labels (do-not-generalize): <list>
 
 ## Observations
 
@@ -193,22 +200,30 @@ staleness_threshold: 5
 |---|---|---|---|---|
 | 1 | [quote] | [quote] | [context] | {date} |
 
+## Rejected Edits (negative feedback for the optimizer)
+
+| Edit | Target | Held-out score delta | Round |
+|---|---|---|---|
+| [proposed edit] | [target file] | [score drop] | [round/date] |
+
 ---
 ```
 
 Update rules:
 
-1. **New "hold" observations** from this session: add them to the accumulator with `Sessions seen: 1`, `Sessions since last seen: 0`, and `Status: hold`.
+1. **New observations** from this session: add them with `Sessions seen: 1`, `Sessions since last seen: 0`, and `Status: hold`. These are candidate evidence for the optimizer, not pending-promotion-by-count.
 
-2. **Existing observations matched this session** (the agent merged new instances into an existing pattern): increment `Sessions seen`, reset `Sessions since last seen` to 0, and append the new instance rows.
+2. **Existing observations matched this session** (the agent merged new instances into an existing pattern): increment `Sessions seen`, reset `Sessions since last seen` to 0, and append the new instance rows. Recurrence enriches the evidence the optimizer sees; it does not by itself trigger a rule change.
 
 3. **Existing observations NOT seen this session**: increment `Sessions since last seen` by 1.
 
-4. **Observations promoted to "apply" and approved by user**: remove from the accumulator entirely. They have graduated into actual rule changes.
+4. **Observations whose proposed edit the gate accepted**: the observation has graduated into a committed rule change. Remove it from the Observations list.
 
-5. **Observations promoted to "apply" but rejected by user**: keep in the accumulator. Set `Status: rejected`. Rejected observations are never promoted to "apply" again by the agent (the agent should check for this status). They remain as context.
+5. **Observations whose proposed edit the user rejected or the gate failed**: set `Status: rejected` and append a row to the **Rejected Edits** table (target + held-out score delta + round). Rejected edits are never re-proposed in the same form (the agent checks this status). The observation stays as negative-feedback context.
 
-6. **Staleness expiry**: remove any observation where `Sessions since last seen` exceeds the `staleness_threshold` value from the accumulator header (default: 5). The pattern didn't recur; it was likely piece-specific.
+6. **Staleness expiry**: remove any observation where `Sessions since last seen` exceeds the `staleness_threshold` value (default: 5). This is hygiene for piece-specific noise that never recurred, not a graduation signal.
+
+7. **PROTECTED — Longitudinal Guidance**: never modify this section during a routine learning run. It is updated only by the slow-update (epoch) step or by explicit user instruction. Step-level edits MUST NOT touch it.
 
 ### Step 10: Cleanup
 
