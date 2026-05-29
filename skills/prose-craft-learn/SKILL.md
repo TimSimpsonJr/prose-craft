@@ -299,6 +299,27 @@ Do this for **each piece processed in this batch**:
 
 5. If the manifest's `snapshots` array is now empty, delete manifest.json itself.
 
+## The generative-gate harness
+
+The generative gate regenerates a held-out brief under two skill-states and compares the results. It is **in-session orchestration**, not a script: the loop dispatches generation sub-agents (the same Agent pattern the review gate uses) and aggregates their output.
+
+**Inputs:** a **stripped brief** (see `setup/brief-stripping-guide.md` — strip the skill-encoding so the edit's effect is visible and an old embedded voice rule can't contradict the edited register), and the two skill-states to compare (current vs. edited).
+
+**Procedure (per candidate taste edit):**
+
+1. Pick a held-out **selection** piece (`D_sel`) in the edit's register and load its stripped brief.
+2. **Regenerate under skill-state A (current).** Dispatch a generation sub-agent with the stripped brief + the current register/rules. Repeat **k times** (k = 2-3) to get a sample set; this averages out generation noise.
+3. **Regenerate under skill-state B (edited).** Same brief, same k, but with the candidate edit applied to the register/rules.
+4. **Compare.** Run the pairwise step (Mode 2 Step 9): present the A-set vs. the B-set to the human, capture the pick, and log the shadow taste-judge alongside. For a stable read, compare the sets (or representative samples), not a single lucky draw.
+5. The edit passes the taste fraction iff the human prefers the **B** (edited) set.
+
+**Two gate flavors** (per the bootstrap):
+
+- **Generative gate** (above): needs a captured brief; tests whether the edit improves fresh generation.
+- **Retrospective gate** (no brief needed): does the candidate edit catch a held-out piece's *actual* hand-corrections without over-flagging text the user kept? Use this for discipline edits and when a brief isn't available. Strong for discipline, judge-assisted for taste.
+
+**Cost note:** k regenerations × 2 skill-states × one judge call per comparison. Keep k small; the point is noise reduction, not exhaustive sampling.
+
 ## Notes
 
 - Snapshots are per-session. If writing spans multiple sessions, only the most recent session's snapshots are available. Earlier sessions' snapshots may have been cleaned up or may reference stale text. The learning analysis works from whatever snapshots exist at invocation time.
