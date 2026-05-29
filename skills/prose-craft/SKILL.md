@@ -162,4 +162,6 @@ Wait for both agents to return.
 
 The user accepts, rejects, or modifies each row individually.
 
+**Snapshot (suppression ledger):** Once you have decided the disposition of every finding from both agents — which became advisory rows (surfaced), which you silently fixed (hard fails), and which you dropped without surfacing or fixing (suppressed) — invoke the `prose-craft-learn` skill with `snapshot suppression`, passing the full set of findings and each finding's disposition. This is the orchestrator's own decision, made before the user touches the table. Log honestly: record what you dropped, not only what you acted on. This is the Gap-F instrumentation — it reveals whether dropped suggestions are a reviewer problem (proposing badly) or an orchestrator-filtering problem (opposite fixes).
+
 **Snapshot:** After all advisory rows have been processed, invoke the `prose-craft-learn` skill with `snapshot post-fixes` to save the current text.
