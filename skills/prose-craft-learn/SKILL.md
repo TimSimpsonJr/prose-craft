@@ -348,6 +348,28 @@ Do **not** score both agents the same way (the three error classes):
 4. Apply approved evaluator edits to `agents/prose-review.md` / `agents/craft-review.md` in both locations (repo + installed), as in Mode 2 Step 10.
 5. **Re-baseline.** Because the evaluators just changed, previously recorded held-out scores are stale. Note in the bootstrap/run log that held-out scores must be re-measured before the next generator round.
 
+## The ablation operation
+
+Rules accrete; some stop earning their place. Ablation is the metabolism that removes dead weight, using the same gate as everything else.
+
+**Operation (per rule):**
+
+1. **Drop the rule** from its file (register, SKILL.md, or a review agent), temporarily.
+2. **Regenerate the selection set** (`D_sel`) under the dropped-rule skill-state, k samples per brief (the generative-gate harness).
+3. **Score against the gate.** Compare dropped-rule output to with-rule output by the pairwise step (for discipline rules, also run the discipline script).
+4. **Decide.** If the gate score does **not** fall when the rule is gone, the rule wasn't earning its place: **keep the drop** (remove the rule). If the score falls, the rule is load-bearing: **restore it**.
+5. **Log** the keep/remove decision and the score delta per rule to `${CLAUDE_PLUGIN_ROOT}/learning/ablation-log.md`.
+
+This is the inverse of the edit gate: an edit is kept only if it *improves* the held-out score; a rule is dropped only if its removal *doesn't hurt* it. Both protect the held-out score from drift.
+
+**Cadence (interim default):** sweep before each release, or when a file's rule count crosses a threshold (e.g. a review-agent section passing ~10 rules). A fixed recurring cadence is deferred until observed rule-growth justifies one.
+
+**Initial sweep targets** (run at bootstrap), the most recently graduated rules, to test whether they earn their place:
+- prose-review **#25 Performed Specificity** and **#26 Hollow Anadiplosis** (present in the installed `agents/prose-review.md`; the repo copy lags, so the sweep operates on the installed copy).
+- the SKILL.md **colon-for-inline-elaboration** rule (also enforced by the discipline script).
+
+Record each as a keep/remove decision + score delta in `learning/ablation-log.md`.
+
 ## Notes
 
 - Snapshots are per-session. If writing spans multiple sessions, only the most recent session's snapshots are available. Earlier sessions' snapshots may have been cleaned up or may reference stale text. The learning analysis works from whatever snapshots exist at invocation time.
