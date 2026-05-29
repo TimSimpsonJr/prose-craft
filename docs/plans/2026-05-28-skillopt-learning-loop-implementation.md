@@ -12,11 +12,11 @@
 
 ## Execution status & handoff (read first)
 
-**As of 2026-05-28, branch `skillopt-learning-loop`.** This plan was produced and Task 1 executed in a prior session; the rest is handed to a fresh session for interactive execution.
+**As of 2026-05-28, branch `skillopt-learning-loop`.** Phase 1 (all repo-side prompt/agent/doc edits) is complete and the plugin has been selectively reinstalled. **Read the full handoff first:** `docs/handoffs/2026-05-28-skillopt-loop-phase2-handoff.md`.
 
-**Done:** Task 1 (discipline-check script) — TDD, 14/14 tests green, spec + code-quality reviewed. Commits `92e83cb` (script) → `6413915` (CLI hardening + word-boundary matching) → `0598927` (lookaround boundaries). The design doc and this plan are committed at `57648dd`.
+**Done:** Task 1 (discipline-check script, prior session, commits `92e83cb`→`6413915`→`0598927`). This session: Tasks 2, 4, 5, 6, 7, 8, 9, 10, 11, 12 (commits `f6b2c67` through `2a9480c`, plus fix `c9e5edd`) and Task 3 prep (splits approved). Plugin reinstalled via a selective 9-file sync (live data left untouched). No PR yet — the single PR comes at Task 14.
 
-**Start here:** Task 2. Tasks 2–14 remain. No PR yet — the branch accumulates and the single PR comes at Task 14.
+**Start here:** Phase 2, after the user confirms the restart loaded the reinstalled plugin. Remaining: Task 2 live (accumulator migration), Task 3 live (write `splits.md`), Task 6 live (installed registers' Demonstrated Edits), Task 13 (bootstrap — needs user pairwise judgment), Task 14 (MANIFEST + PR). **Pause for explicit go-ahead before each live-data write.** The approved split allocation and the dual-location reinstall hazard are spelled out in the handoff doc.
 
 **Carry these forward (not fully spelled out in the task bodies):**
 - **Do not mutate live plugin data without the user's explicit go-ahead.** Tasks that write the installed copy (`C:\Users\tim\.claude\plugins\cache\local\prose-craft\2.0.0\`) — Task 2's accumulator migration over 23 real observations, Task 6's edits to the advocacy/personal/fiction registers the user actively writes with, Tasks 3/9/12's splits and logs — touch un-versioned data the user depends on. Confirm before each.
