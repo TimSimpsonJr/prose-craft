@@ -14,6 +14,7 @@ This skill is independently invocable. It does not require prose-craft to be act
 Check the invocation arguments to determine which mode to run.
 
 - `snapshot post-review`, `snapshot post-fixes`, or `snapshot suppression` --> Mode 1: Snapshot Save
+- `evaluators` --> Mode 3: Evaluator Correction
 - A file path argument (e.g., `/prose-craft-learn path/to/edited-file.md`) --> Mode 2: Learning Analysis, using that file
 - No arguments (just `/prose-craft-learn`) --> Mode 2: Learning Analysis, using the most recent snapshot set
 
@@ -319,6 +320,33 @@ The generative gate regenerates a held-out brief under two skill-states and comp
 - **Retrospective gate** (no brief needed): does the candidate edit catch a held-out piece's *actual* hand-corrections without over-flagging text the user kept? Use this for discipline edits and when a brief isn't available. Strong for discipline, judge-assisted for taste.
 
 **Cost note:** k regenerations × 2 skill-states × one judge call per comparison. Keep k small; the point is noise reduction, not exhaustive sampling.
+
+## Mode 3: Evaluator Correction
+
+Invoked with `/prose-craft-learn evaluators`. This is a **separate loop** from generator training, with its own ground truth and cadence. It corrects the review agents (prose-review, craft-review); it never runs while a generator run is in flight.
+
+**Why separate.** The reviewers participate in every rollout (the scored piece is post-review). If you improve a reviewer mid-generator-run, you have moved the evaluator and broken score comparability. So: **freeze prose-review and craft-review during generator runs.** Improve them here, then **re-baseline** the held-out scores before the next generator round.
+
+### Ground truth
+
+Your advisory **accept / reject / modify** decisions, read from the suppression logs and the (compacted) review-findings across recent pieces. An accepted advisory = the check was right. A rejected advisory = interpret by agent and error class (below). A modified advisory = the agent found a real issue but proposed the wrong fix.
+
+### Metrics, by agent and error class
+
+Do **not** score both agents the same way (the three error classes):
+
+- **prose-review = high precision.** It should fire rarely and be right. Metric: **precision** (of its advisories, what fraction did you accept?). A pattern of consistent rejection of an advisory type signals **over-firing**: propose a tightened trigger for that check.
+- **craft-review = high recall.** It is *meant* to surface non-obvious opportunities; most get rejected and that is the design working. Metric: **recall-at-1** (did at least one of its opportunities per piece land?). **Never tune its triggers down on rejection rate** (the PROTECTED Longitudinal Guidance enforces this).
+- **Reviewer self-violation** (either agent): the agent's *own suggested text* contains a banned pattern. Metric: **self-violation rate** (violations per long piece). Objective defect: propose a fix to the agent's suggestion-generation guidance.
+- **Factual hallucination** (either agent): the agent invented a fact (a plaintiff, a place, a number). Always a defect, independent of precision or recall.
+
+### Procedure
+
+1. Gather the accept/reject/modify ledger across recent pieces (suppression logs + review-findings).
+2. Compute the metrics above per agent.
+3. Propose evaluator edits **only** where the metric (not the raw rejection rate) justifies it: tighten prose-review triggers that over-fire; fix self-violations; flag hallucinations. Leave craft-review's recall-driven boldness alone.
+4. Apply approved evaluator edits to `agents/prose-review.md` / `agents/craft-review.md` in both locations (repo + installed), as in Mode 2 Step 10.
+5. **Re-baseline.** Because the evaluators just changed, previously recorded held-out scores are stale. Note in the bootstrap/run log that held-out scores must be re-measured before the next generator round.
 
 ## Notes
 
