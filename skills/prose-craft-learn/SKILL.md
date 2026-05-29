@@ -213,7 +213,7 @@ For each taste edit being gated:
 1. Pick a held-out **selection-set** piece (`D_sel` from `splits.md`) in the edit's register that exercises the pattern, and use its captured brief.
 2. Regenerate that brief twice: once under the **current** skill-state (A) and once under the **edited** skill-state (B). Generate **several samples each** (2-3) and treat them as a set, to average out generation noise. (The regeneration mechanics are the generative-gate harness, documented below.)
 3. Present the user an **A/B comparison** (blind if practical) and ask: *which is more you* — more in-register? Capture the human pick. **The human is the only gatekeeper.**
-4. **Shadow judge:** dispatch the `taste-judge` agent on the same A/B (brief + both versions). Log the judge's pick **alongside** the human pick to `${CLAUDE_PLUGIN_ROOT}/learning/judge-agreement.md`. The judge **gates nothing** — it only accumulates a calibration corpus.
+4. **Shadow judge:** dispatch the `taste-judge` agent (model: sonnet) on the same comparison — pass the brief, the register's voice feature description, and both versions (A = current, B = edited). Append a row to `${CLAUDE_PLUGIN_ROOT}/learning/judge-agreement.md` recording: date, register, edit name, the **human** pick, the **judge** pick, the judge's confidence, and whether they **agree** (columns: `| Date | Register | Edit | Human | Judge | Confidence | Agree? |`). The judge **gates nothing** — it only accumulates the calibration corpus that would later justify promoting it to a gatekeeper.
 5. The edit passes the taste fraction iff the **human** picked the edited version (B).
 
 ### Step 10: Apply accepted edits and retain exemplars
