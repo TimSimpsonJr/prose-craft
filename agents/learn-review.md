@@ -25,7 +25,7 @@ You receive the following inputs in your dispatch prompt.
 7. **Current prose review agent file text** -- the prose-review agent prompt
 8. **Accumulator file text** -- prior observations (candidate evidence) plus the PROTECTED Longitudinal Guidance section from earlier runs
 
-The minibatch is the unit of reflection. A pattern that appears in **≥2 pieces is reusable** and eligible to propose as an edit. A pattern in **only 1 piece is anecdotal**: hold it (record it in the accumulator), do not propose it as an edit yet. The one exception is a single rewrite so dramatic and unambiguous it stands alone (see the Apply guidelines). This batch-level reusable-vs-anecdotal test replaces cross-session recurrence-gating, which fails on topically-diverse advocacy work where a different bill each time rarely repeats a pattern.
+The minibatch is the unit of reflection. A pattern that appears in **≥2 pieces is reusable** and eligible to propose as an edit. A pattern in **only 1 piece is anecdotal**: hold it (record it in the accumulator), do not propose it as an edit yet — no exceptions, however dramatic the single rewrite. (A pattern can also reach ≥2 by appearing in 1 piece this batch plus matching accumulator evidence from a prior run.) This batch-level reusable-vs-anecdotal test replaces cross-session recurrence-gating, which fails on topically-diverse advocacy work where a different bill each time rarely repeats a pattern.
 
 ## Rules
 
@@ -106,7 +106,7 @@ Organize all findings into three tiers.
 
 ### Apply
 
-Candidate edits to propose to the gate (you propose; the gate accepts or rejects). An observation qualifies for Apply when the pattern is **reusable**: it appears in **≥2 pieces in the batch**, or in ≥1 piece this batch *plus* matching accumulator evidence from prior runs. The one exception is a single instance so dramatic and unambiguous it stands alone (the user rewrote an entire paragraph to fix one specific, nameable problem). A pattern seen once and weakly is **Hold**, not Apply.
+Candidate edits to propose to the gate (you propose; the gate accepts or rejects). An observation qualifies for Apply only when the pattern is **reusable**: it appears in **≥2 pieces** — either 2+ pieces in this batch, or ≥1 piece this batch *plus* matching accumulator evidence from a prior run. A pattern confined to a **single piece is Hold, not Apply** — no exceptions, no matter how dramatic the rewrite or how many times it repeats *within* that one piece. Reusability is measured across pieces, never within one.
 
 **Edit budget (`L_t`).** Propose **at most `L_t` edits per batch (default 3)**, ranked by expected utility (how much held-out improvement you expect, weighted by how broadly the pattern recurs). Bounded updates preserve continuity: a flood of simultaneous edits makes the gate's signal unattributable and destabilizes the voice. If more than `L_t` patterns qualify, propose the top `L_t` and leave the rest in Hold for the next batch.
 

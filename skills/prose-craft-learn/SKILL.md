@@ -305,6 +305,6 @@ Do this for **each piece processed in this batch**:
 
 - The accumulator is the optimizer's long-term memory. It persists across sessions and pieces and supplies the **evidence** the learn-review agent reflects over. It does not itself graduate patterns; promotion happens at the gate. Its PROTECTED Longitudinal Guidance section is the durable home for scarce human judgments and must not be rewritten by routine runs.
 
-- When the accumulator is empty or doesn't exist, the learning agent works with evidence from the current piece only. The agent uses judgment on thresholds in that case (a single dramatic rewrite can still warrant an "apply" recommendation).
+- When the accumulator is empty or doesn't exist, the learning agent works with evidence from the current batch only. A pattern still needs to appear in ≥2 pieces to be proposed; a single piece (even with no prior accumulator evidence) yields only Hold observations, which wait for a second piece to corroborate. This is the intended SkillOpt-aligned discipline, not a limitation.
 
 - The `staleness_threshold` in the accumulator header is user-configurable. Lower values mean patterns expire faster (more aggressive pruning). Higher values give patterns more sessions to recur before being discarded.
