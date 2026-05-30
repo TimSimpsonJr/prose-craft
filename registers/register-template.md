@@ -33,3 +33,20 @@ Bad output names categories: "Uses persuasive techniques effectively."]
 Good output captures what makes this voice distinctive: "Refuse to perform the expected emotional response. When the reader expects gravity, be offhand."
 
 Bad output could apply to anyone: "Writes with authenticity and personality."]
+
+## Demonstrated Edits
+
+Validated before/after pairs the learning loop retains when an edit passes the held-out gate. They are **exemplars, not rules**: verbatim pairs of pipeline output vs. the version that won the gate, with **no commentary**. Generation reads these alongside the voice feature description above and imitates what the "after" versions *do* (it does not copy them verbatim).
+
+FIFO-capped at 8-12 pairs: when a new pair is added past the cap, drop the oldest. Starts empty; the learning loop fills it.
+
+<!-- Format for each retained pair:
+
+### Pair {n} -- {short tag}
+**Before (pipeline):**
+> [verbatim pipeline output]
+
+**After (won the gate):**
+> [verbatim winning version]
+-->
+

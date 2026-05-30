@@ -30,6 +30,8 @@ Example format:
 
 The register's voice feature description is the primary voice instruction. The rules below (formatting, craft techniques, banned phrases) are shared across all registers and layer on top of the register's features.
 
+Also read the active register's `## Demonstrated Edits` section if it has one. These are validated before/after exemplars (pipeline output vs. the version that won the learning gate). Treat them as concrete demonstrations of the voice alongside the feature description: imitate what the "after" versions *do*, never copy them verbatim.
+
 ## Source Material
 
 When the user provides source material (conversation transcripts, research notes, outlines, links):
@@ -152,6 +154,7 @@ Wait for both agents to return.
 **Processing results:**
 
 - **Hard fails** (banned phrases, fatal pattern, em dashes, ChatGPT-isms): fix these silently before presenting to user.
+  - **Fatal-pattern re-check (independent).** After silently rewriting any fatal-pattern hard fail, dispatch the `fatal-pattern-recheck` agent (model: sonnet) on the rewritten passage. This MUST be a separate Agent dispatch from the one that wrote the rewrite (separation of proposer and checker). If it returns `FAIL`, redo the rewrite and re-check; if a second attempt still fails, escalate to the user with the offending quote rather than presenting text with a surviving fatal pattern.
 - **All other findings**: present in an advisory table below the text:
 
 | # | Line | Pattern | Current | Proposed fix |
@@ -159,5 +162,7 @@ Wait for both agents to return.
 | 1 | [quote] | [pattern name] | [the current text] | [a proposed replacement] |
 
 The user accepts, rejects, or modifies each row individually.
+
+**Snapshot (suppression ledger):** Once you have decided the disposition of every finding from both agents — which became advisory rows (surfaced), which you silently fixed (hard fails), and which you dropped without surfacing or fixing (suppressed) — invoke the `prose-craft-learn` skill with `snapshot suppression`, passing the full set of findings and each finding's disposition. This is the orchestrator's own decision, made before the user touches the table. Log honestly: record what you dropped, not only what you acted on. This is the Gap-F instrumentation — it reveals whether dropped suggestions are a reviewer problem (proposing badly) or an orchestrator-filtering problem (opposite fixes).
 
 **Snapshot:** After all advisory rows have been processed, invoke the `prose-craft-learn` skill with `snapshot post-fixes` to save the current text.
