@@ -100,3 +100,47 @@ def test_cli_diff_success_prints_counts_and_introduced(tmp_path):
     payload = json.loads(result.stdout)
     assert "counts" in payload and "introduced_new" in payload
     assert payload["introduced_new"] is True
+
+
+# --- Tuning against false positives surfaced by the bootstrap (Task 13 Step 6) ---
+
+
+def test_caps_phrase_ignores_acronym_runs():
+    # consecutive domain acronyms are initialisms, not vocal-stress emphasis;
+    # these were false positives on the real advocacy corpus ("SC ALPR", "SC FOIA")
+    assert count_violations("The SC ALPR program tracks cars")["caps_phrase"] == 0
+    assert count_violations("She filed an SC FOIA request")["caps_phrase"] == 0
+    assert count_violations("the SLED ALPR database")["caps_phrase"] == 0
+
+
+def test_caps_phrase_still_flags_emphasis_and_mixed_runs():
+    # genuine multi-word emphasis is still a violation
+    assert count_violations("This is REALLY BAD news")["caps_phrase"] == 1
+    # an acronym followed by an emphasis word is still emphasis
+    assert count_violations("SLED LIES about the database")["caps_phrase"] == 1
+
+
+def test_strips_yaml_frontmatter_before_counting():
+    # frontmatter keys (title:, summary:) are not prose colons
+    doc = '---\ntitle: "A: B"\nsummary: "x: y"\n---\nThe point: it works.\n'
+    assert count_violations(doc)["colon_inline"] == 1  # only the prose colon
+
+
+def test_strips_heading_lines_before_counting():
+    # a markdown heading with a title:subtitle colon is not inline elaboration
+    doc = "## Florence County: the workaround\n\nClean prose without issues.\n"
+    assert count_violations(doc)["colon_inline"] == 0
+
+
+def test_strips_code_and_script_blocks():
+    # markup inside fenced code / JSON-LD <script> must not count as prose violations
+    doc = '```\nkey: value -- and a dash\n```\n<script>{"@type": "X"}</script>\nClean prose.\n'
+    v = count_violations(doc)
+    assert v["colon_inline"] == 0
+    assert v["em_dash"] == 0
+
+
+def test_nonprose_strip_is_noop_on_plain_prose():
+    # plain prose snippets (the normal gate input) are unaffected by stripping
+    assert count_violations("The point: it works.")["colon_inline"] == 1
+    assert count_violations("a — b — c")["em_dash"] == 2

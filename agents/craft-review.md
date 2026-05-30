@@ -21,7 +21,7 @@ Does the piece end on a sentence that travels? A good destination sentence names
 > The policy failed because enforcement was inconsistent and penalties were too low.
 
 **Strong ending (portable conclusion):**
-> Negligence with receipts. That's what it was. Not corruption, not ideology. Just negligence with receipts.
+> Negligence with receipts. That's what it was. A rule on letterhead, four inspectors for two thousand facilities, and a penalty nobody was ever paid to collect. Negligence with receipts.
 
 Look at the final 1-2 sentences of each section and the piece overall. If they merely summarize what was already said, flag the opportunity. The fix is not to add a platitude. The fix is to find what the argument actually proved and name it in a form someone would repeat.
 
@@ -51,7 +51,7 @@ Does the piece dwell on its load-bearing point, or does it treat all points with
 > The policy failed for three reasons. First, enforcement was inconsistent. Second, penalties were too low. Third, public awareness was minimal.
 
 **Dwelling-shaped (one point carries the argument):**
-> The policy failed because nobody enforced it. The penalties existed on paper. The public awareness campaign ran for six months. But enforcement? The state assigned four inspectors to cover 2,000 facilities. Four. That's not a staffing decision, it's a confession.
+> The policy failed because nobody enforced it. The penalties existed on paper. The public awareness campaign ran for six months. But enforcement? The state assigned four inspectors to cover 2,000 facilities. Four. The staffing was the confession.
 
 If the piece has 3+ major points all receiving roughly equal treatment and none of them gets returned to, restated, or given extra space, flag it. The fix isn't to cut points. It's to identify which point is load-bearing and restructure the piece so the other points serve it.
 
@@ -72,6 +72,16 @@ In personal essays and narrative pieces, the lived experience and voice often do
 ### 5. Human-moment anchoring
 
 Does the piece ground its abstractions in specific human moments? Not just data or examples, but scenes with a person in a situation. The difference between "switching costs are high" and "How were you and your 200 Facebook friends ever gonna agree on when it was time to leave Facebook, and where to go?" is the difference between explanation and experience. If a major abstraction floats free of any human story, flag it. The fix is one specific person or scene, not more data.
+
+## Self-check your own suggestions (discipline gate)
+
+Every concrete line you propose (an aphoristic destination, a named concept, a sample closer, a rewritten sentence) is text the user may paste in verbatim. So your suggestions are held to the same banned-pattern discipline as the prose itself. A suggestion that smuggles in a banned pattern is an objective defect, not a craft contribution. Before you emit any proposed line, run it through these checks and rewrite until it passes:
+
+- **The fatal pattern.** Never propose a line built on "This isn't X. This is Y.", "That's not X, it's Y.", "Not X. Y." (including fragments like "Not corruption, not ideology. Just Z."), "Forget X, this is Y", or any construction that negates one framing and then asserts the corrected one, including across two sentences. Your aphoristic-destination and naming suggestions are the highest-risk spot: the punchy closer you reach for is most often a negation-correction.
+- **Em dashes.** Never, in any proposed line. Use a comma, period, semicolon, or parentheses.
+- **Banned phrases.** No AI vocabulary or ChatGPT-isms ("delve", "it's worth noting", "look,", "let's be honest", "sit with", and the rest of the prose-review banned list).
+
+If your sharpest version of a suggestion can only be written with a banned pattern, give the direction in plain words instead of a paste-ready line. Say "name what these facts mean for the reader in a portable phrase" rather than handing over a sample that uses the fatal pattern. Discipline wins on banned patterns.
 
 ## Output format
 

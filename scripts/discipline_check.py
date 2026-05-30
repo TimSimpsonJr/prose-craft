@@ -9,9 +9,16 @@ This script intentionally covers only the four MECHANICAL checks below. The sema
 
 Checks:
   em_dash        em dashes (the literal character, or a bare "--" not inside a longer run)
-  caps_phrase    two or more consecutive ALL-CAPS words (a single one is allowed advocacy)
+  caps_phrase    two or more consecutive ALL-CAPS words used for emphasis. A run made up
+                 ENTIRELY of known acronyms (e.g. "SC ALPR", "SC FOIA") is an initialism,
+                 not emphasis, and is NOT counted. Extend CAPS_ALLOWLIST for new acronyms.
   colon_inline   a colon followed by inline elaboration (a colon introducing a list is fine)
-  banned_phrase  literal banned phrases from banned_phrases.txt (boundary-aware via lookaround, case-insensitive)
+  banned_phrase  literal banned phrases from banned_phrases.txt (boundary-aware, case-insensitive)
+
+Counting runs on PROSE only: YAML frontmatter, fenced code blocks, <script> blocks
+(e.g. JSON-LD), and markdown heading lines are stripped first, so a piece's metadata
+and embedded markup don't masquerade as prose violations. (Stripping is symmetric in
+--diff mode, so it never affects whether a rewrite "introduced" a violation.)
 """
 
 import json
@@ -27,9 +34,47 @@ BANNED = [
     if line.strip()
 ]
 
+# An all-caps run composed ONLY of these is an acronym/initialism, not emphasis, so it is
+# not counted as a caps_phrase violation. Tuned against the advocacy corpus (SC ALPR, SC
+# FOIA, SLED, ...); extend as new domain acronyms surface.
+CAPS_ALLOWLIST = {
+    "SC", "US", "USA", "EU", "UK", "NY", "DC",
+    "ALPR", "ALPRS", "LPR", "SLED", "SCDOT", "DMV", "CCTV", "GPS",
+    "FOIA", "PII", "SSN", "DUI", "SWAT", "VPN",
+    "FBI", "DEA", "ICE", "CBP", "NSA", "DHS", "DOJ", "IRS", "AG", "DA",
+    "AI", "SAAS", "API", "URL", "HTML", "JSON", "PDF", "FAQ",
+    "HOA", "NGO", "CEO", "CTO", "PR", "TV", "ID",
+}
+
+_CAPS_RUN = re.compile(r"\b[A-Z]{2,}(?:\s+[A-Z]{2,})+\b")
+_FRONTMATTER = re.compile(r"\A---\n.*?\n---\n", re.DOTALL)
+_FENCED = re.compile(r"```.*?```", re.DOTALL)
+_SCRIPT = re.compile(r"<script[^>]*>.*?</script>", re.DOTALL | re.IGNORECASE)
+_HEADING = re.compile(r"(?m)^\s{0,3}#{1,6}\s.*$")
+
+
+def _strip_nonprose(text: str) -> str:
+    """Remove non-prose regions so metadata/markup don't count as prose violations."""
+    text = _FRONTMATTER.sub("", text, count=1)
+    text = _FENCED.sub("", text)
+    text = _SCRIPT.sub("", text)
+    text = _HEADING.sub("", text)
+    return text
+
+
+def _caps_phrase_count(text: str) -> int:
+    """Consecutive ALL-CAPS words used for emphasis; runs of only acronyms don't count."""
+    count = 0
+    for run in _CAPS_RUN.findall(text):
+        if all(tok.upper() in CAPS_ALLOWLIST for tok in run.split()):
+            continue  # initialism run (e.g. "SC ALPR"), not vocal-stress emphasis
+        count += 1
+    return count
+
 
 def count_violations(text: str) -> dict:
-    caps_phrase = len(re.findall(r"\b[A-Z]{2,}(?:\s+[A-Z]{2,})+\b", text))
+    text = _strip_nonprose(text)
+    caps_phrase = _caps_phrase_count(text)
     em_dash = text.count("—") + len(re.findall(r"(?<!-)--(?!-)", text))
     colon_inline = len(re.findall(r":\s+(?![\n\-\*\d])", text))
     low = text.lower()
