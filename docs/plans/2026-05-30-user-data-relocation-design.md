@@ -99,7 +99,25 @@ In the new architecture this is wrong on both halves. Replace with target-aware 
 | Other learning artifacts (`splits.md`, `ablation-log.md`, `judge-agreement.md`) | `~/.claude/data/prose-craft/learning/<name>` |
 | Plugin-code file (agent body, skill body, scripts) | **Do not apply locally.** Record the proposed edit in `~/.claude/data/prose-craft/learning/pending-upstream.md` for review and possible upstreaming via PR to the prose-craft repo. |
 
-The plugin-code case is the load-bearing change: marketplace updates own the install path, so any local write would be clobbered on next plugin update. Auto-applying to a co-located source repo (the old behavior) is also fragile (assumes the user has cloned the source, that it's at a known path, that they want learning-loop output written to their working tree). Deferring those edits to an explicit upstream queue keeps the learning loop's authority over plugin code visible rather than silent. The exact UX of `pending-upstream.md` (file format, when/how prose-craft-learn surfaces it to the user) is out of scope for this design and lands in the planned extraction/learning rework.
+The plugin-code case is the load-bearing change: marketplace updates own the install path, so any local write would be clobbered on next plugin update. Auto-applying to a co-located source repo (the old behavior) is also fragile (assumes the user has cloned the source, that it's at a known path, that they want learning-loop output written to their working tree). Deferring those edits to an explicit upstream queue keeps the learning loop's authority over plugin code visible rather than silent.
+
+**`pending-upstream.md` format (defined now so the file doesn't degenerate into an unstructured dump):**
+
+Each accepted plugin-code edit appends one entry of the form:
+
+```markdown
+## <ISO-8601 timestamp> · <target-path>
+
+- **Source candidate:** `<learn-review proposal id or short label>`
+- **Rationale:** <one-paragraph summary of the gate evidence supporting this edit>
+
+```diff
+<unified diff: old vs. new at target-path>
+```
+
+```
+
+Entries append newest-first (most recent at top) so the most actionable upstream candidates are visible without scrolling. The richer UX of surfacing these to the user (e.g., a `/prose-craft-pending` skill) is out of scope here and lands in the planned extraction/learning rework — but the on-disk structure is committed now so the rework has a clean substrate to read from.
 
 `scripts/discipline_check.py` does not reference user data paths — it takes paths as CLI args and only resolves one file (`banned_phrases.txt`) relative to itself. No change needed.
 
@@ -211,7 +229,7 @@ The register's *name* is the filename minus `.md` (so `~/.claude/data/prose-craf
 
 **Template update:** `template-data/registers/register-template.md` gains a frontmatter block at the top with placeholder `triggers:` showing the format. The init skill copies the template, then rewrites the frontmatter with the user's actual triggers.
 
-**Migration of existing registers** (handled in §6 step 2): for the user's existing dotfiles registers (`advocacy.md`, `personal.md`, `dystopian-fiction.md`) which don't have frontmatter yet, add `triggers:` blocks by extracting the trigger phrases from the user's current `skills/prose-craft/SKILL.md` register-detection block. This is a one-shot per register.
+**Migration of existing registers** (handled in §6 step 2): the user's existing dotfiles registers (`advocacy.md`, `personal.md`, `dystopian-fiction.md`) don't have `triggers:` frontmatter yet. The natural source — the inline register-detection block in `skills/prose-craft/SKILL.md` — is empty in the current repo (it still holds only the template HTML comment), so triggers can't be extracted from there. Migration prompts the user interactively for triggers per register instead. If the user declines a register, write `triggers: []` and let the discovery flow's ambiguity fallback handle it (the user gets asked per invocation until they populate triggers).
 
 ### 4.6 Documentation updates
 
@@ -360,16 +378,28 @@ Personal data is copied (not moved) at every step. The old `cache/local/prose-cr
 - Merge to `main`. Bump plugin version to **2.1.0**.
 
 **Step 2 — Mac: migrate personal data to the new location.**
+
 ```bash
-mkdir -p ~/.claude/data/prose-craft/{registers,learning}
-cp -R ~/.claude/plugins/cache/local/prose-craft/2.0.0/registers/*.md ~/.claude/data/prose-craft/registers/
-cp -R ~/.claude/plugins/cache/local/prose-craft/2.0.0/learning/. ~/.claude/data/prose-craft/learning/
-# extraction-artifacts moves from registers/ to learning/ per §3
-if [[ -d ~/.claude/plugins/cache/local/prose-craft/2.0.0/registers/extraction-artifacts ]]; then
-  mv ~/.claude/data/prose-craft/registers/extraction-artifacts ~/.claude/data/prose-craft/learning/
+SRC=~/.claude/plugins/cache/local/prose-craft/2.0.0
+DST=~/.claude/data/prose-craft
+mkdir -p $DST/{registers,learning}
+
+# Register .md files (just the markdown, not the extraction-artifacts subdir)
+cp -R $SRC/registers/*.md $DST/registers/
+
+# Everything under learning/, verbatim
+cp -R $SRC/learning/. $DST/learning/
+
+# extraction-artifacts moves from registers/ (old location) to learning/ (new location, per §3)
+if [[ -d $SRC/registers/extraction-artifacts ]]; then
+  cp -R $SRC/registers/extraction-artifacts $DST/learning/
 fi
 ```
-Then add YAML frontmatter to each migrated register file (per §4.5). The trigger phrases come from the user's current `skills/prose-craft/SKILL.md` register-detection block — extract them inline. Example for `personal.md`:
+
+Verify: file count under `$DST/registers/` matches the count of `$SRC/registers/*.md`, file count under `$DST/learning/` matches the count of `$SRC/learning/*` plus the extraction-artifacts subtree.
+
+Then add YAML frontmatter to each migrated register file (per §4.5). **Triggers are not extractable from the current `skills/prose-craft/SKILL.md`** — that file still holds only the placeholder HTML comment, so there's no inline register-detection block to mine. Prompt the user instead: for each register file (`advocacy.md`, `personal.md`, `dystopian-fiction.md`, plus any others present), ask "What writing contexts should activate this register?" and write the response into the file's frontmatter. Example for `personal.md`:
+
 ```yaml
 ---
 triggers:
@@ -378,7 +408,8 @@ triggers:
   - reflective writing
 ---
 ```
-Verify: every register file in `~/.claude/data/prose-craft/registers/` now has a `triggers:` frontmatter block, and the file counts under registers/ and learning/ match what was copied.
+
+If the user declines to specify triggers for a register, write an empty `triggers: []` block; prose-craft will then always ask the user which register to use until that register's triggers get populated later. Don't silently invent triggers from filenames — better to surface the configuration gap.
 
 **Step 3 — Mac: switch from local install to marketplace install.**
 - `~/.claude/settings.json`: remove or set `prose-craft@local: false`; ensure `prose-craft@prose-craft: true`.
