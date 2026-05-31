@@ -1070,6 +1070,47 @@ git status
 
 ---
 
+### Task C1.5: Update `claude/settings.json` in the dotfiles repo
+
+**Files:**
+- Modify: `~/dotfiles-claude/claude/settings.json`
+
+The dotfiles repo carries a sanitized snapshot of `~/.claude/settings.json`, including the `enabledPlugins` block. Today that block has `"prose-craft@local": true` (currently around line 81). After Phase A merges and the local plugin is gone, restoring this settings file via `install-mac.sh` would re-enable a plugin that doesn't exist. Worse, it would *not* enable `prose-craft@prose-craft`, so a fresh restore wouldn't run prose-craft from the marketplace.
+
+- [ ] **Step 1: Edit `claude/settings.json`.** Remove the `"prose-craft@local": true` line from the `enabledPlugins` block and add `"prose-craft@prose-craft": true`. Use a Python one-liner so the JSON formatting stays clean:
+
+```bash
+cd ~/dotfiles-claude
+python3 << 'PY'
+import json
+from pathlib import Path
+p = Path('claude/settings.json')
+data = json.loads(p.read_text())
+data['enabledPlugins'].pop('prose-craft@local', None)
+data['enabledPlugins']['prose-craft@prose-craft'] = True
+p.write_text(json.dumps(data, indent=2) + '\n')
+print("settings.json updated")
+PY
+```
+
+- [ ] **Step 2: Confirm the dotfiles settings still match what Mac actually has.** The Mac side `~/.claude/settings.json` was updated in Task B2; the dotfiles version should now match.
+
+```bash
+diff <(jq '.enabledPlugins' ~/dotfiles-claude/claude/settings.json) \
+     <(jq '.enabledPlugins' ~/.claude/settings.json)
+# Expected: empty diff (or only differences on unrelated plugins, e.g. machine-specific seo-toolkit state)
+```
+
+- [ ] **Step 3: Stage.**
+
+```bash
+git add claude/settings.json
+```
+
+(Commit happens in Task C5 with the rest of Phase C.)
+
+---
+
 ### Task C2: Update `scripts/install-mac.sh` to handle the data layer
 
 **Files:**
@@ -1199,6 +1240,41 @@ git add scripts/snapshot-from-windows.sh
 
 ---
 
+### Task C3.5: Update `MANIFEST.md` in the dotfiles repo
+
+**Files:**
+- Modify: `~/dotfiles-claude/MANIFEST.md`
+
+The dotfiles repo carries its own MANIFEST.md (the user maintains structural maps on owned repos). It currently lists `claude/local-plugins/prose-craft/2.0.0/` under "Structure" and references prose-craft as one of two local plugins. After Task C1's `git rm -rf claude/local-plugins/prose-craft/`, those references become structurally false.
+
+- [ ] **Step 1: Read the current dotfiles MANIFEST.**
+
+```bash
+cat ~/dotfiles-claude/MANIFEST.md
+```
+
+- [ ] **Step 2: Update the Structure tree:**
+
+- Inside the `local-plugins/` block: remove the `prose-craft/2.0.0/` line (and its one-line description). Keep `seo-toolkit/0.1.0/`.
+- After the `local-plugins/` block, insert a new `data/` block:
+
+  ```
+  │   ├── data/                                      # per-plugin user data layers
+  │   │   └── prose-craft/                          # registers, learning artifacts; survives plugin updates
+  ```
+
+- [ ] **Step 3: Update any Key Relationships / narrative sections** that mention prose-craft as a local plugin or describe the install-mac.sh "local plugins" step as the prose-craft sync mechanism. Update those to reference the new `claude/data/prose-craft/` layout instead.
+
+- [ ] **Step 4: Stage.**
+
+```bash
+git add MANIFEST.md
+```
+
+(Commit in Task C5.)
+
+---
+
 ### Task C4: Update `README.md` in the dotfiles repo
 
 **Files:**
@@ -1242,8 +1318,10 @@ git diff --cached --stat
 Expected:
 - `claude/data/prose-craft/{registers,learning}/...` added (new files)
 - `claude/local-plugins/prose-craft/...` deleted (many files)
+- `claude/settings.json` modified (Task C1.5)
 - `scripts/install-mac.sh` modified
 - `scripts/snapshot-from-windows.sh` modified
+- `MANIFEST.md` modified (Task C3.5)
 - `README.md` modified
 
 - [ ] **Step 2: Commit.**
@@ -1260,12 +1338,17 @@ prose-craft repo's v2.1.0 user-data-relocation work.
 - claude/data/prose-craft/{registers,learning} populated from Mac's
   ~/.claude/data/prose-craft/ (now the canonical source).
 - claude/local-plugins/prose-craft/ removed entirely.
+- claude/settings.json: prose-craft@local removed, prose-craft@prose-craft
+  added — otherwise a fresh install-mac.sh restore would re-enable a
+  plugin that no longer exists in the repo.
 - scripts/install-mac.sh: adds a per-plugin data-layer sync loop.
 - scripts/snapshot-from-windows.sh: pre-flight check refuses to run
   if expected source data paths are missing on the running machine
   (prevents an interim-state snapshot from erasing canonical data);
   permanent prose-craft skip in the local-plugins loop; new data-
   layer block.
+- MANIFEST.md: drops local-plugins/prose-craft/ from the Structure
+  tree; adds the new claude/data/prose-craft/ block.
 - README.md: updated "What's in here" + verification checklist.
 
 Windows migration is deferred — when ready, pull this repo, run
@@ -1377,6 +1460,8 @@ After completing all tasks, before declaring the work done:
 - [ ] `/prose-craft` and `/prose-craft-init` resolve on Mac from the marketplace install path
 - [ ] Mac's `~/.claude/plugins/cache/local/prose-craft/` is deleted
 - [ ] dotfiles `main` has `claude/data/prose-craft/` populated and no `claude/local-plugins/prose-craft/`
+- [ ] dotfiles `claude/settings.json` has `prose-craft@prose-craft: true` and no `prose-craft@local` entry
+- [ ] dotfiles `MANIFEST.md` no longer lists `local-plugins/prose-craft/`; lists `data/prose-craft/` instead
 - [ ] dotfiles `docs/windows-migration.md` exists for the Phase D execution later
 
 When the user is next at Windows, they execute Phase D from the cheat-sheet.
