@@ -1,3 +1,13 @@
+---
+# Replace the placeholder array below with the writing contexts that should
+# activate this register. The prose-craft skill matches the user's current
+# writing task against these phrases. Examples: "advocacy writing",
+# "personal essays", "technical documentation".
+triggers:
+  - placeholder context 1
+  - placeholder context 2
+---
+
 # Register: [Name]
 
 ## Voice Feature Description
