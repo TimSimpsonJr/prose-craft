@@ -205,6 +205,35 @@ grep -n 'CLAUDE_PLUGIN_ROOT/registers\|CLAUDE_PLUGIN_ROOT/learning' skills/prose
 
 If anything turns up (e.g., a reference with a typo or unusual spacing the sed missed), rewrite it manually.
 
+- [ ] **Step 3.5: Fix bare relative paths the `${CLAUDE_PLUGIN_ROOT}/`-only sed didn't catch.**
+
+There are three known spots in `skills/prose-craft-learn/SKILL.md` (line numbers from main as of this writing) that reference `registers/...` or `learning/...` *without* the `${CLAUDE_PLUGIN_ROOT}/` prefix — because they sit inside a bulleted list whose lead-in sentence supplies that prefix once at the top ("Read these from `${CLAUDE_PLUGIN_ROOT}/:`"). After our rewrite, the lead-in sentence's prefix changes but the bare list items don't follow along. Plus a bare ablation-log reference.
+
+```bash
+grep -n '\bregisters/{register\|\blearning/splits\|\blearning/ablation-log' skills/prose-craft-learn/SKILL.md
+# Expected hits around lines 135, 139, 371 (line numbers may shift after earlier edits)
+```
+
+For each hit, rewrite the bare `registers/...` or `learning/...` path to its absolute form at `~/.claude/data/prose-craft/...`:
+
+- `` `registers/{register}.md` `` → `` `~/.claude/data/prose-craft/registers/{register}.md` ``
+- `` `learning/splits.md` `` → `` `~/.claude/data/prose-craft/learning/splits.md` ``
+- `` `learning/ablation-log.md` `` → `` `~/.claude/data/prose-craft/learning/ablation-log.md` ``
+
+Use `sed -i.bak` for each, then diff and remove the `.bak`:
+
+```bash
+sed -i.bak \
+  -e 's|`registers/{register}\.md`|`~/.claude/data/prose-craft/registers/{register}.md`|g' \
+  -e 's|`learning/splits\.md`|`~/.claude/data/prose-craft/learning/splits.md`|g' \
+  -e 's|`learning/ablation-log\.md`|`~/.claude/data/prose-craft/learning/ablation-log.md`|g' \
+  skills/prose-craft-learn/SKILL.md
+diff -u skills/prose-craft-learn/SKILL.md.bak skills/prose-craft-learn/SKILL.md
+rm skills/prose-craft-learn/SKILL.md.bak
+```
+
+Also update the lead-in sentence at line ~131 ("Read these from `${CLAUDE_PLUGIN_ROOT}/:`") — strip the now-misleading prefix mention since each list item now carries its own absolute path. The sentence becomes "Read these:" (or similar).
+
 - [ ] **Step 4: Find and replace the hardcoded dual-write block.**
 
 The current text (around lines 220-225, matched by content) says:
@@ -248,6 +277,28 @@ The richer UX (e.g., a `/prose-craft-pending` skill that surfaces queued edits) 
 ```
 
 (The `\```diff` and trailing `\```` are how the inner fenced block is encoded in markdown when included verbatim inside another fenced block.)
+
+- [ ] **Step 4.5: Reroute the other plugin-code-edit instructions in the same file.**
+
+The Mode 2 Step 10 dual-write block (Step 4 above) is not the only place this file directs writes at plugin-code files. Two more sites need the same treatment:
+
+1. **Mode 3 (evaluator mode) — step 4** around line ~348 currently reads:
+
+   > "Apply approved evaluator edits to `agents/prose-review.md` / `agents/craft-review.md` in both locations (repo + installed), as in Mode 2 Step 10."
+
+   Replace that step with:
+
+   > "Approved evaluator edits route per the same table in Mode 2 Step 10. `agents/prose-review.md` and `agents/craft-review.md` are plugin-code files — append the proposed edit to `~/.claude/data/prose-craft/learning/pending-upstream.md` for upstream PR. Do not write to the marketplace install path."
+
+2. **Ablation operation — "Initial sweep targets"** around lines ~366-368 currently reads (in the prose-review #25 / #26 bullet):
+
+   > "(present in the installed `agents/prose-review.md`; the repo copy lags, so the sweep operates on the installed copy)."
+
+   This language assumes a co-located source repo + locally-modifiable install. Replace with:
+
+   > "(reference target is `agents/prose-review.md` in the marketplace install at `~/.claude/plugins/cache/prose-craft/prose-craft/<ver>/agents/prose-review.md` — read-only. Any rule drop that survives the gate is a plugin-code edit and routes to `~/.claude/data/prose-craft/learning/pending-upstream.md` for upstream PR per Mode 2 Step 10.)"
+
+   And the "Record each as a keep/remove decision + score delta in `learning/ablation-log.md`" line at ~371 already got its path absolutized in Step 3.5 above; verify it now reads `~/.claude/data/prose-craft/learning/ablation-log.md`.
 
 - [ ] **Step 5: Commit.**
 
@@ -590,15 +641,29 @@ The current MANIFEST contains language that becomes actively dangerous after mig
 cat MANIFEST.md
 ```
 
-- [ ] **Step 2: Rewrite the affected sections.** Specifically:
+- [ ] **Step 2: Rewrite the affected sections.** The MANIFEST file-tree describes the **repository structure** — after Task A1 deletes `registers/` and `learning/` from the repo root, those entries can't stay in the file-tree (they'd be structurally false). All references to the live-data location belong in "Key Relationships," not in the file-tree.
 
-- In the file-tree under "Structure" → `registers/` block: change `(advocacy, personal, dystopian-fiction) are installed-only data` to `Live registers live at \$HOME/.claude/data/prose-craft/registers/ (not in this repo).`
-- In the file-tree under "Structure" → `learning/accumulator.md` line: replace `Clean/empty in the repo; the live accumulator is installed-only` with `Empty starter at template-data/learning/accumulator.md; live accumulator at \$HOME/.claude/data/prose-craft/learning/accumulator.md.`
-- Add a new file-tree entry for `template-data/`: `template-data/registers/register-template.md` and `template-data/learning/accumulator.md` — describe as "read-only starter content the /prose-craft-init skill copies into ~/.claude/data/prose-craft/ on first run."
-- Add a new file-tree entry for `skills/prose-craft-init/SKILL.md` with one-line description.
-- **Critical:** rewrite the "Key Relationships → Dual location (critical)" block. Drop the `~/.claude/plugins/cache/local/prose-craft/<ver>/` references entirely. Drop the "Never full-reinstall" warning. Replace with:
+**File-tree changes ("Structure" section):**
 
-  > **Plugin install vs. user data.** Plugin code lives at `~/.claude/plugins/cache/prose-craft/prose-craft/<ver>/` and is owned by marketplace updates — fully disposable. Personal data lives at `~/.claude/data/prose-craft/` (registers, accumulator, snapshots, ablation log, judge-agreement log, etc.) and is invariant under plugin updates. Full plugin reinstall is safe; it never touches user data.
+- **Remove** the entire `registers/` block (currently 3 lines: `registers/` heading + `register-template.md` + the trailing description about installed-only live data). It does not exist in the repo anymore.
+- **Remove** the `learning/accumulator.md` line. It does not exist in the repo anymore either.
+- **Add** a new top-level `template-data/` entry:
+
+  ```
+  template-data/                Read-only starter content the /prose-craft-init skill copies into
+    registers/                  ~/.claude/data/prose-craft/ on first run. Includes the register
+      register-template.md      template (with triggers: frontmatter) and the empty accumulator
+    learning/                   starter. New template files added in future plugin releases reach
+      accumulator.md            users via /prose-craft-init's idempotent copy step.
+  ```
+
+- **Add** to the `skills/` block: `prose-craft-init/SKILL.md   Bootstrap + extraction walkthrough; creates ~/.claude/data/prose-craft/ and writes the first register.`
+
+**Key Relationships changes:**
+
+Find the "Dual location (critical)" bullet (the one that currently warns "Never full-reinstall (it clobbers live data)"). Replace it wholesale with:
+
+> **Plugin install vs. user data.** Plugin code lives at `~/.claude/plugins/cache/prose-craft/prose-craft/<ver>/` and is owned by marketplace updates — fully disposable. Personal data lives at `~/.claude/data/prose-craft/` (registers with `triggers:` frontmatter, accumulator, snapshots, ablation log, judge-agreement log, extraction artifacts, pending-upstream queue) and is invariant under plugin updates. Full plugin reinstall is safe; it never touches user data. The `/prose-craft-init` skill bootstraps the data layer on first run by copying anything missing from `template-data/` — existing files are never overwritten.
 
 Preserve everything else (Stack section, agent descriptions, Review gate bullet, Learning loop bullet, PROTECTED field bullet, Splits drive the gate bullet).
 
@@ -671,13 +736,29 @@ python3 -m pytest tests/ -v
 - [ ] **Step 2: Grep for any stale references** the rewrites might have missed.
 
 ```bash
+# (a) Old ${CLAUDE_PLUGIN_ROOT}-prefixed registers/learning paths
 grep -rn '\${CLAUDE_PLUGIN_ROOT}/registers\|\${CLAUDE_PLUGIN_ROOT}/learning' skills/ agents/ setup/ template-data/ README.md MANIFEST.md
 # Expected: empty
+
+# (b) Old install path
 grep -rn 'plugins/cache/local/prose-craft' skills/ agents/ setup/ README.md MANIFEST.md
 # Expected: empty (the old install path should not appear in any user-facing doc)
+
+# (c) Bare `registers/...` or `learning/...` in backticks — these are paths
+#     the ${CLAUDE_PLUGIN_ROOT}-only sed wouldn't catch
+grep -rn '`registers/[a-z{]\|`learning/[a-z]' skills/ agents/ setup/
+# Expected: empty
+# (Match characters after the slash to a-z or { so we don't false-positive on
+# prose like "learning loop" that has nothing to do with paths. The ablation
+# section's "registers/" intentional usage to mean "the registers directory"
+# would show up — review case-by-case if hits appear.)
+
+# (d) Anywhere still telling the user to edit SKILL.md inline for register config
+grep -rn -i "edit SKILL.md\|edit the Register Detection\|configure your registers in SKILL.md" skills/ setup/ README.md MANIFEST.md
+# Expected: empty
 ```
 
-If either grep returns content, fix the references and amend the relevant commit.
+If any of (a)-(d) returns content, fix the references and amend the relevant commit (or add a new follow-up commit on the same branch).
 
 - [ ] **Step 3: Visually walk the branch diff.**
 
@@ -747,14 +828,18 @@ mkdir -p ~/.claude/data/prose-craft/registers
 mkdir -p ~/.claude/data/prose-craft/learning
 ```
 
-- [ ] **Step 2: Copy the register markdown files.**
+- [ ] **Step 2: Copy the register markdown files, EXCLUDING the stale 2.0.0 register-template.md.**
+
+The 2.0.0 template doesn't have the `triggers:` frontmatter block (that's a v2.1.0 addition). If we copied it here, the init skill's "only copy missing files" rule would never replace it, leaving the user-data path with a perpetually stale reference template. Exclude it now; Task B2 step 5 copies the v2.1.0 template from the marketplace install instead.
 
 ```bash
 SRC=~/.claude/plugins/cache/local/prose-craft/2.0.0
 DST=~/.claude/data/prose-craft
-cp $SRC/registers/*.md $DST/registers/
+find "$SRC/registers" -maxdepth 1 -type f -name '*.md' ! -name 'register-template.md' \
+  -exec cp {} "$DST/registers/" \;
 ls $DST/registers/
-# Expected: advocacy.md  dystopian-fiction.md  personal.md  register-template.md
+# Expected: advocacy.md  dystopian-fiction.md  personal.md
+# (register-template.md is intentionally absent; Task B2 step 5 will add the v2.1.0 version)
 ```
 
 - [ ] **Step 3: Copy the learning subtree (verbatim).**
@@ -885,11 +970,23 @@ PY
 3. Clone the marketplace at `~/.claude/plugins/marketplaces/prose-craft/` if absent.
 4. Install plugin v2.1.0 to `~/.claude/plugins/cache/prose-craft/prose-craft/2.1.0/`.
 
-- [ ] **Step 5: Verify after restart.**
+- [ ] **Step 5: Refresh the v2.1.0 register template into the user-data path.**
+
+Task B1 step 2 intentionally skipped copying the old 2.0.0 `register-template.md`. Now that the v2.1.0 install exists, copy the new template (with the `triggers:` frontmatter) directly into the user-data path so it's available for future `/prose-craft-init` invocations and any user who manually copies the template:
+
+```bash
+PLUGIN_DIR=~/.claude/plugins/cache/prose-craft/prose-craft/2.1.0
+cp "$PLUGIN_DIR/template-data/registers/register-template.md" \
+   ~/.claude/data/prose-craft/registers/register-template.md
+head -10 ~/.claude/data/prose-craft/registers/register-template.md
+# Expected: file starts with --- YAML frontmatter including triggers: block
+```
+
+- [ ] **Step 6: Verify after restart.**
 
 ```bash
 # Marketplace install path exists
-ls ~/.claude/plugins/cache/prose-craft/prose-craft/2.1.0/ | head -5
+ls ~/.claude/plugins/cache/prose-craft/prose-craft/2.1.0/ | head -10
 # Expected: .claude-plugin/, skills/, agents/, scripts/, setup/, template-data/, README.md, LICENSE (or similar)
 
 # Old local install path is still there (deleted in Task B3)
@@ -899,6 +996,10 @@ ls ~/.claude/plugins/cache/local/prose-craft/2.0.0/.claude-plugin/plugin.json 2>
 #   /prose-craft         → should fire (or report missing init if data dir is empty)
 #   /prose-craft-init    → should fire
 #   /prose-craft-learn   → should fire
+
+# Confirm the data-path register-template has the new frontmatter
+head -5 ~/.claude/data/prose-craft/registers/register-template.md
+# Expected: starts with --- and contains "triggers:"
 ```
 
 ---
