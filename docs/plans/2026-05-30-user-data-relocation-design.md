@@ -1,3 +1,10 @@
+---
+codex_design_review_status: approved
+codex_design_review_approved_hash: b1fc06aed4a61d427caaea50d5b9762c1977be287f6e89c675d472c0a781d5dc
+codex_thread_id: 019e7b78-eb8f-71b2-af7d-81adac2eed35
+codex_review_rounds: 3
+---
+
 # Design: Relocate User Data Out of the Plugin Install Path
 
 **Date:** 2026-05-30
@@ -222,7 +229,7 @@ The register's *name* is the filename minus `.md` (so `~/.claude/data/prose-craf
 >
 > 1. Glob `~/.claude/data/prose-craft/registers/*.md`, excluding `register-template.md`.
 > 2. For each file, read the YAML frontmatter. If a file has no frontmatter or no `triggers` field, skip it (it's not a configured register).
-> 3. Match the current writing context against each register's triggers. If exactly one register matches, use it. If multiple match, ask the user which. If none match, ask the user which register to use (or to run `/prose-craft-init` if none configured).
+> 3. Match the current writing context against each register's triggers. If exactly one register matches, use it. If multiple match, ask the user which. If none match (including registers whose `triggers:` array is empty), ask the user which register to use, listing **all** registers found in the directory — including those with `triggers: []` — so partially-configured registers are still selectable. If no register files are configured at all, tell the user to run `/prose-craft-init`.
 > 4. Read the chosen register's body (everything after the frontmatter) — that's the voice feature description.
 
 **Init skill responsibility** (§4.3 step 5 extended): when the init skill creates a register file, it asks the user for the trigger contexts (drawing from the user's answer to step 1 about what kind of writing this register is for) and writes them as `triggers:` in the new register file's frontmatter.
