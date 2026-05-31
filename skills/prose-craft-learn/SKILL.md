@@ -230,9 +230,9 @@ For each edit the gate **accepted**, route the write by target type:
 
 The marketplace install path is owned by plugin updates — any local write there gets clobbered on next update. The `pending-upstream.md` queue keeps plugin-code edits visible without silently mutating disposable state.
 
-**`pending-upstream.md` append format** (newest-first):
+**`pending-upstream.md` append format** (newest-first). The example below uses 4-backtick outer fences so the inner 3-backtick `diff` fence renders correctly:
 
-```markdown
+````markdown
 ## <ISO-8601 timestamp> · <target-path-relative-to-plugin-root>
 
 - **Source candidate:** `<learn-review proposal id or short label>`
@@ -241,7 +241,7 @@ The marketplace install path is owned by plugin updates — any local write ther
 ```diff
 <unified diff of the proposed change>
 ```
-```
+````
 
 The richer UX (e.g., a `/prose-craft-pending` skill that surfaces queued edits) is out of scope; lands in the planned extraction/learning rework.
 

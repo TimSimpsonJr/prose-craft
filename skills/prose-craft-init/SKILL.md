@@ -9,15 +9,14 @@ This skill bootstraps the prose-craft user-data directory and walks you through 
 
 ## Phase 1: Bootstrap the data directory
 
-1. Check whether `~/.claude/data/prose-craft/` exists.
-2. If not, create it along with `registers/` and `learning/snapshots/` underneath:
+1. **Always** ensure the required subdirectories exist. `mkdir -p` is idempotent — these calls are safe to run on every invocation, and they protect against partial-init states (e.g., the root exists but `registers/` was deleted, or the data root was created by a prior plugin version without all its subdirs):
 
    ```bash
    mkdir -p ~/.claude/data/prose-craft/registers
    mkdir -p ~/.claude/data/prose-craft/learning/snapshots
    ```
 
-3. For every file under `${CLAUDE_PLUGIN_ROOT}/template-data/`, check whether the corresponding target under `~/.claude/data/prose-craft/` exists. If the target is missing, copy the template file there. **Never overwrite a file that already exists at the target.** This pattern lets plugin updates ship new template files (which appear at the data path on next init invocation) without ever touching existing user data.
+2. For every file under `${CLAUDE_PLUGIN_ROOT}/template-data/`, check whether the corresponding target under `~/.claude/data/prose-craft/` exists. If the target is missing, copy the template file there. **Never overwrite a file that already exists at the target.** This pattern lets plugin updates ship new template files (which appear at the data path on next init invocation) without ever touching existing user data.
 
 ## Phase 2: Detect state and route
 
