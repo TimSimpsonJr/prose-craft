@@ -23,8 +23,10 @@ Claude Code will install it as a plugin automatically. You can also install from
 ## Quick start
 
 1. Install the plugin (see above)
-2. Follow the setup process in `setup/extraction-guide.md` to create your voice registers (~30 minutes, requires Claude Sonnet access)
-3. Once your registers are configured, the skill activates automatically whenever you ask Claude to write text for outside consumption
+2. Run `/prose-craft-init` — the init skill creates `~/.claude/data/prose-craft/`, copies the starter template, and walks you through extracting your first voice register (~30 minutes, requires Claude Sonnet access). Re-run any time to add a new register.
+3. Once at least one register is configured, `/prose-craft` activates automatically whenever you ask Claude to write text for outside consumption.
+
+Your personal data (registers, accumulator, snapshots) lives at `~/.claude/data/prose-craft/` and is invariant under plugin updates — feel free to update the plugin from the marketplace without worrying about losing your voice extractions.
 
 ## How it works
 
@@ -94,30 +96,40 @@ The learning loop is the fastest way to sharpen your voice registers after the i
 
 ## Setup
 
-See `setup/extraction-guide.md` for the full walkthrough. The process takes about 30 minutes and requires Claude Sonnet access. You'll gather writing samples, run two extraction passes, and end up with one or more register files that capture your voice.
+Run `/prose-craft-init` after installing the plugin. The init skill walks you through extraction interactively. The process takes about 30 minutes and requires Claude Sonnet access — you'll gather writing samples, run two extraction passes, and end up with a register file at `~/.claude/data/prose-craft/registers/<name>.md` that captures your voice (with `triggers:` frontmatter declaring the contexts that activate it).
+
+For a top-down look at the manual process underneath the init skill — useful if you want to understand what's happening or run it by hand — see `setup/extraction-guide.md`.
 
 ## File structure
 
 ```
-prose-craft/
+prose-craft/                          # The plugin (this repo, shipped via marketplace)
   .claude-plugin/plugin.json          # Plugin manifest
   skills/
-    prose-craft/SKILL.md              # Main skill: register detection, craft rules, review gate
+    prose-craft/SKILL.md              # Main skill: register detection (frontmatter-based), craft rules, review gate
     prose-craft-learn/SKILL.md        # Learning skill: snapshots, analysis, accumulator
+    prose-craft-init/SKILL.md         # First-run setup + extraction walkthrough
   agents/
     prose-review.md                   # AI pattern detection, banned phrases, voice drift
     craft-review.md                   # Naming, endings, dwelling, literary devices
     learn-review.md                   # Diff analysis, pattern extraction, rule proposals
-  registers/
-    register-template.md              # Template for creating voice registers
+  template-data/                      # Read-only starter content (copied to ~/.claude/data/ on first run)
+    registers/register-template.md
+    learning/accumulator.md
+  setup/                              # Reference prompts and guides
+    extraction-guide.md
+    sample-collection.md
+    pass-1-prompt.md
+    pass-2-prompt.md
+    brief-stripping-guide.md
+
+~/.claude/data/prose-craft/           # Your personal data (NOT in this repo; survives plugin updates)
+  registers/                          # Your voice registers with triggers: frontmatter
   learning/
-    accumulator.md                    # Persistent observations across sessions
-    snapshots/                        # Temporary snapshot files (cleaned up after learning)
-  setup/
-    extraction-guide.md               # End-to-end setup walkthrough
-    sample-collection.md              # How to gather your writing samples
-    pass-1-prompt.md                  # Voice extraction prompt (broad)
-    pass-2-prompt.md                  # Voice extraction prompt (pressure test)
+    accumulator.md                    # Accumulated observations
+    snapshots/                        # Per-piece snapshots
+    extraction-artifacts/             # Pass-1/pass-2 outputs from each extraction run
+    pending-upstream.md               # Queue of plugin-code edits the learning loop wants to upstream via PR
 ```
 
 ## License

@@ -7,24 +7,26 @@ description: Use before writing ANY text for outside consumption — blog posts,
 
 You are writing for a human audience. Every sentence should earn the next one.
 
+## First-run setup
+
+Before generating anything, verify the user-data directory is ready:
+
+1. Check whether `~/.claude/data/prose-craft/registers/` contains at least one register file other than `register-template.md`.
+2. If yes, proceed with normal generation (skip the rest of this section).
+3. If no register files exist (or the directory is missing), tell the user: "prose-craft isn't initialized on this machine yet. Run `/prose-craft-init` to create your first register." Stop — do not attempt generation.
+
+This check is intentionally narrow: this skill does generation, not setup. Anything that touches the data directory or walks the user through extraction lives in `/prose-craft-init`.
+
 ## Register Detection
 
-On invocation, determine which register to use from context:
+On invocation, determine which register to use from context by reading the per-register frontmatter at the user-data path:
 
-<!-- 
-Configure your registers here after running the extraction process.
-See setup/extraction-guide.md for the format and a worked example.
+1. Glob `~/.claude/data/prose-craft/registers/*.md`, excluding `register-template.md`.
+2. For each file, read the YAML frontmatter block at the top. If a file has no frontmatter or no `triggers` field, skip it (it's not a configured register).
+3. Match the current writing context against each register's `triggers` list. If exactly one register matches, use it. If multiple match, ask the user which. If none match — **including registers whose `triggers:` array is empty** — ask the user which register to use, listing all registers found in the directory so partially-configured registers are still selectable. If no register files are configured at all, tell the user to run `/prose-craft-init`.
+4. Read the chosen register's body (everything after the closing `---` of the frontmatter) — that's the voice feature description.
 
-Each register entry has three parts:
-- A name
-- Trigger contexts (what kind of writing activates this register)
-- A file path to the register's voice feature description
-
-Example format:
-
-**[Register Name]** triggers: [comma-separated list of contexts]
-→ Read `${CLAUDE_PLUGIN_ROOT}/registers/[name].md` and follow its voice feature description.
--->
+The register's name is the filename without the `.md` extension (so `~/.claude/data/prose-craft/registers/personal.md` is the `personal` register).
 
 **Ambiguous:** Ask the user which register to use.
 
