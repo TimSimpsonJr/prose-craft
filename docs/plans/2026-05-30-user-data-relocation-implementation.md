@@ -1447,9 +1447,27 @@ Run these steps when home with Windows.
 
 3. **Switch the plugin from local to marketplace install** in `%USERPROFILE%\.claude\`:
 
-   - `settings.json` (`enabledPlugins`): delete `"prose-craft@local"`, add or set `"prose-craft@prose-craft": true`.
+   - `settings.json` — update **both** `enabledPlugins` and `extraKnownMarketplaces`. The `extraKnownMarketplaces` entry is critical: the next `snapshot-from-windows.sh` copies `settings.json` back to the dotfiles repo, so if Windows lacks the prose-craft marketplace registration there, the snapshot would erase the entry Phase C1.5 added to dotfiles. Run this Python from a Git Bash prompt (or equivalent):
+
+     ```bash
+     python3 << 'PY'
+     import json
+     from pathlib import Path
+     p = Path.home() / '.claude/settings.json'
+     data = json.loads(p.read_text())
+     data['enabledPlugins'].pop('prose-craft@local', None)
+     data['enabledPlugins']['prose-craft@prose-craft'] = True
+     ekm = data.setdefault('extraKnownMarketplaces', {})
+     ekm['prose-craft'] = {
+         'source': {'source': 'git', 'url': 'https://github.com/TimSimpsonJr/prose-craft.git'},
+     }
+     p.write_text(json.dumps(data, indent=2) + '\n')
+     print("settings.json updated (enabledPlugins + extraKnownMarketplaces)")
+     PY
+     ```
+
    - `plugins\installed_plugins.json`: delete the `prose-craft@local` entry; Claude Code will create the `prose-craft@prose-craft` entry on next launch.
-   - `plugins\known_marketplaces.json`: ensure a `prose-craft` entry pointing at `https://github.com/TimSimpsonJr/prose-craft.git` exists.
+   - `plugins\known_marketplaces.json`: ensure a `prose-craft` entry pointing at `https://github.com/TimSimpsonJr/prose-craft.git` exists. (This is machine-local runtime state, distinct from the durable `extraKnownMarketplaces` in `settings.json` above — both need to be set.)
 
 4. **Restart Claude Code** and verify `/prose-craft`, `/prose-craft-init`, `/prose-craft-learn` all resolve.
 
