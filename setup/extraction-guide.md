@@ -35,23 +35,11 @@ In the same or a new Sonnet conversation, paste the prompt from `pass-2-prompt.m
 
 ### Step 6: Create your register file
 
-Copy `registers/register-template.md` to `registers/[your-register-name].md` (e.g., `registers/casual.md` or `registers/professional.md`). Open it and paste the relevant sections of your pass-2 output into the four sections (Vocabulary, Sentence Structure, Rhetorical Techniques, Voice Qualities).
+Use `/prose-craft-init` to create a new register interactively. The init skill walks you through extracting your voice from samples (via Sonnet) and writes the resulting register file (with its `triggers:` frontmatter declaring activation contexts) to `~/.claude/data/prose-craft/registers/<your-register-name>.md`.
 
-### Step 7: Configure register detection in SKILL.md
+If you prefer the manual path, copy `~/.claude/data/prose-craft/registers/register-template.md` to `~/.claude/data/prose-craft/registers/<your-register-name>.md`, paste your pass-2 output into the body, and add a `triggers:` frontmatter array listing the writing contexts that should activate this register. The `prose-craft` skill discovers registers by globbing this directory and reading frontmatter — no SKILL.md edits required.
 
-Open `skills/prose-craft/SKILL.md` and find the Register Detection section. It contains an HTML comment with format instructions. Replace the comment with entries for your registers. Here's the format:
-
-```markdown
-**Casual** triggers: personal reflection, blog posts, comments, forum posts, exploring ideas, sharing opinions
-→ Read `${CLAUDE_PLUGIN_ROOT}/registers/casual.md` and follow its voice feature description.
-
-**Professional** triggers: articles, documentation, reports, proposals, formal writing, technical explanations
-→ Read `${CLAUDE_PLUGIN_ROOT}/registers/professional.md` and follow its voice feature description.
-```
-
-Adjust the names, triggers, and file paths to match your registers. The trigger list tells the skill when to activate each register. If the writing context is ambiguous, the skill will ask you which register to use.
-
-### Step 8: Install and test
+### Step 7: Install and test
 
 Test the plugin:
 
