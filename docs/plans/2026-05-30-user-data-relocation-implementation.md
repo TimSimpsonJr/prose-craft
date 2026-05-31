@@ -910,11 +910,10 @@ All files except `register-template.md` should report `OK`.
 - Modify: `~/.claude/plugins/installed_plugins.json`
 - Modify: `~/.claude/plugins/known_marketplaces.json`
 
-- [ ] **Step 1: Update `~/.claude/settings.json`.** In the `enabledPlugins` block:
-- Remove the `"prose-craft@local": true` entry (or set it to `false`).
-- Add `"prose-craft@prose-craft": true`.
+- [ ] **Step 1: Update `~/.claude/settings.json`.** Two changes in this file:
 
-Use the Edit tool or a Python one-liner:
+1. `enabledPlugins`: remove `"prose-craft@local": true`, add `"prose-craft@prose-craft": true`.
+2. `extraKnownMarketplaces`: add a `prose-craft` entry (this is the durable cross-machine registry; `known_marketplaces.json` from Step 3 is machine-local runtime state).
 
 ```bash
 python3 << 'PY'
@@ -922,10 +921,22 @@ import json
 from pathlib import Path
 p = Path.home() / '.claude/settings.json'
 data = json.loads(p.read_text())
+
+# enabledPlugins
 data['enabledPlugins'].pop('prose-craft@local', None)
 data['enabledPlugins']['prose-craft@prose-craft'] = True
+
+# extraKnownMarketplaces
+ekm = data.setdefault('extraKnownMarketplaces', {})
+ekm['prose-craft'] = {
+    'source': {
+        'source': 'git',
+        'url': 'https://github.com/TimSimpsonJr/prose-craft.git',
+    },
+}
+
 p.write_text(json.dumps(data, indent=2) + '\n')
-print("settings.json updated")
+print("settings.json updated (enabledPlugins + extraKnownMarketplaces)")
 PY
 ```
 
@@ -1077,7 +1088,14 @@ git status
 
 The dotfiles repo carries a sanitized snapshot of `~/.claude/settings.json`, including the `enabledPlugins` block. Today that block has `"prose-craft@local": true` (currently around line 81). After Phase A merges and the local plugin is gone, restoring this settings file via `install-mac.sh` would re-enable a plugin that doesn't exist. Worse, it would *not* enable `prose-craft@prose-craft`, so a fresh restore wouldn't run prose-craft from the marketplace.
 
-- [ ] **Step 1: Edit `claude/settings.json`.** Remove the `"prose-craft@local": true` line from the `enabledPlugins` block and add `"prose-craft@prose-craft": true`. Use a Python one-liner so the JSON formatting stays clean:
+- [ ] **Step 1: Edit `claude/settings.json` — both `enabledPlugins` and `extraKnownMarketplaces`.**
+
+Two changes are required:
+
+1. `enabledPlugins`: remove `"prose-craft@local": true`, add `"prose-craft@prose-craft": true`.
+2. `extraKnownMarketplaces`: add a `prose-craft` entry pointing at the GitHub repo. The dotfiles `claude/settings.json` is the durable home for custom marketplace registrations (Claude Code's `known_marketplaces.json` is machine-local runtime state and is not synced). Without this, a fresh `install-mac.sh` restore would leave `prose-craft@prose-craft` enabled but with no marketplace source the harness could fetch from.
+
+Use a Python one-liner so the JSON formatting stays clean:
 
 ```bash
 cd ~/dotfiles-claude
@@ -1086,20 +1104,38 @@ import json
 from pathlib import Path
 p = Path('claude/settings.json')
 data = json.loads(p.read_text())
+
+# enabledPlugins changes
 data['enabledPlugins'].pop('prose-craft@local', None)
 data['enabledPlugins']['prose-craft@prose-craft'] = True
+
+# extraKnownMarketplaces — match the existing schema in this file
+ekm = data.setdefault('extraKnownMarketplaces', {})
+ekm['prose-craft'] = {
+    'source': {
+        'source': 'git',
+        'url': 'https://github.com/TimSimpsonJr/prose-craft.git',
+    },
+}
+
 p.write_text(json.dumps(data, indent=2) + '\n')
-print("settings.json updated")
+print("settings.json updated (enabledPlugins + extraKnownMarketplaces)")
 PY
 ```
 
-- [ ] **Step 2: Confirm the dotfiles settings still match what Mac actually has.** The Mac side `~/.claude/settings.json` was updated in Task B2; the dotfiles version should now match.
+- [ ] **Step 2: Confirm the dotfiles settings still match what Mac actually has.** The Mac side `~/.claude/settings.json` was updated in Task B2; the dotfiles version should now match for both fields.
 
 ```bash
 diff <(jq '.enabledPlugins' ~/dotfiles-claude/claude/settings.json) \
      <(jq '.enabledPlugins' ~/.claude/settings.json)
 # Expected: empty diff (or only differences on unrelated plugins, e.g. machine-specific seo-toolkit state)
+
+diff <(jq '.extraKnownMarketplaces["prose-craft"]' ~/dotfiles-claude/claude/settings.json) \
+     <(jq '.extraKnownMarketplaces["prose-craft"]' ~/.claude/settings.json)
+# Expected: empty diff (if you updated extraKnownMarketplaces on Mac in B2; if not, update Mac to match by re-running the python from Step 1 against ~/.claude/settings.json)
 ```
+
+If the Mac side `~/.claude/settings.json` doesn't yet have the `prose-craft` entry in `extraKnownMarketplaces`, re-run the Python block from Step 1 against the Mac path (substituting `Path.home() / '.claude/settings.json'`) to bring it in sync.
 
 - [ ] **Step 3: Stage.**
 
