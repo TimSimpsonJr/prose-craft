@@ -1,3 +1,10 @@
+---
+codex_plan_review_status: approved
+codex_plan_review_approved_hash: 55d819e9bd2815fde0ffd9d3265dcef1b7e198e40dc488c287d619d5a82224a2
+codex_thread_id: 019e7b78-eb8f-71b2-af7d-81adac2eed35
+codex_review_rounds: 5
+---
+
 # User Data Relocation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
