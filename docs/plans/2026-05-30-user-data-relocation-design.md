@@ -42,7 +42,7 @@ User data moves to a new canonical location outside the plugin install path:
 ```
 ~/.claude/data/prose-craft/
   registers/
-    <user's voice profiles>.md
+    <user's voice profiles>.md    # YAML frontmatter declares triggers; see §4.5
     register-template.md          # reference template, shipped from plugin on first run
   learning/
     accumulator.md
@@ -53,7 +53,13 @@ User data moves to a new canonical location outside the plugin install path:
     snapshots/
       <piece>-<timestamp>-<stage>.md
       manifest.json
+    extraction-artifacts/         # pass-1/pass-2 outputs from each register's creation run
+      <register-name>/
+        pass-1-output.md
+        pass-2-output.md
 ```
+
+`extraction-artifacts/` lives under `learning/` (not under `registers/`) because its contents are by-products of the extraction *process*, not the registers themselves. The dotfiles repo's current snapshot puts them under `registers/`; the migration in §6 moves them to the new location.
 
 **Why `~/.claude/data/<plugin>/`:**
 
@@ -78,6 +84,22 @@ Every reference to `${CLAUDE_PLUGIN_ROOT}/registers/` and `${CLAUDE_PLUGIN_ROOT}
 | `setup/extraction-guide.md` | 3 | `${CLAUDE_PLUGIN_ROOT}/registers/...` |
 
 Total: ~18 substitutions across 3 files. Each `${CLAUDE_PLUGIN_ROOT}/registers/` becomes `~/.claude/data/prose-craft/registers/`; each `${CLAUDE_PLUGIN_ROOT}/learning/` becomes `~/.claude/data/prose-craft/learning/`.
+
+**Also rewrite the hardcoded dual-write target in `skills/prose-craft-learn/SKILL.md` (currently lines 220-225 of main).** The existing language tells the learning loop to apply each accepted edit to both:
+
+- `~/.claude/plugins/cache/local/prose-craft/2.0.0/{target-path}`
+- `prose-craft/{target-path}` (the source repo)
+
+In the new architecture this is wrong on both halves. Replace with target-aware routing:
+
+| Target type | New write location |
+|---|---|
+| Register file (`registers/<name>.md`) | `~/.claude/data/prose-craft/registers/<name>.md` |
+| `accumulator.md` | `~/.claude/data/prose-craft/learning/accumulator.md` |
+| Other learning artifacts (`splits.md`, `ablation-log.md`, `judge-agreement.md`) | `~/.claude/data/prose-craft/learning/<name>` |
+| Plugin-code file (agent body, skill body, scripts) | **Do not apply locally.** Record the proposed edit in `~/.claude/data/prose-craft/learning/pending-upstream.md` for review and possible upstreaming via PR to the prose-craft repo. |
+
+The plugin-code case is the load-bearing change: marketplace updates own the install path, so any local write would be clobbered on next plugin update. Auto-applying to a co-located source repo (the old behavior) is also fragile (assumes the user has cloned the source, that it's at a known path, that they want learning-loop output written to their working tree). Deferring those edits to an explicit upstream queue keeps the learning loop's authority over plugin code visible rather than silent. The exact UX of `pending-upstream.md` (file format, when/how prose-craft-learn surfaces it to the user) is out of scope for this design and lands in the planned extraction/learning rework.
 
 `scripts/discipline_check.py` does not reference user data paths — it takes paths as CLI args and only resolves one file (`banned_phrases.txt`) relative to itself. No change needed.
 
@@ -153,7 +175,60 @@ At the top of `skills/prose-craft/SKILL.md`, before any generation logic, add a 
 
 The guard is intentionally narrow: the `prose-craft` skill does generation, not setup. Anything that touches the data directory or walks the user through extraction lives in `/prose-craft-init`. This keeps the two skills cleanly separated by responsibility.
 
-### 4.5 Tuning to upstream
+### 4.5 Register discovery via per-register frontmatter
+
+Today `skills/prose-craft/SKILL.md` configures registers in an inline HTML-comment block users are expected to edit after extraction (current lines 10-31). Under a marketplace install that's broken — every plugin update overwrites SKILL.md, wiping the user's register config.
+
+The new architecture moves register declarations into each register file itself as YAML frontmatter. Each register is self-describing:
+
+```yaml
+---
+triggers:
+  - personal essays
+  - blog posts
+  - reflective writing
+---
+
+# Personal Register
+
+[voice feature description...]
+```
+
+The register's *name* is the filename minus `.md` (so `~/.claude/data/prose-craft/registers/personal.md` is the `personal` register). The frontmatter's `triggers` array lists the writing contexts that activate this register.
+
+**Discovery flow in `skills/prose-craft/SKILL.md`** (replacing the current Register Detection section):
+
+> ## Register Detection
+>
+> On invocation, determine which register to use from context:
+>
+> 1. Glob `~/.claude/data/prose-craft/registers/*.md`, excluding `register-template.md`.
+> 2. For each file, read the YAML frontmatter. If a file has no frontmatter or no `triggers` field, skip it (it's not a configured register).
+> 3. Match the current writing context against each register's triggers. If exactly one register matches, use it. If multiple match, ask the user which. If none match, ask the user which register to use (or to run `/prose-craft-init` if none configured).
+> 4. Read the chosen register's body (everything after the frontmatter) — that's the voice feature description.
+
+**Init skill responsibility** (§4.3 step 5 extended): when the init skill creates a register file, it asks the user for the trigger contexts (drawing from the user's answer to step 1 about what kind of writing this register is for) and writes them as `triggers:` in the new register file's frontmatter.
+
+**Template update:** `template-data/registers/register-template.md` gains a frontmatter block at the top with placeholder `triggers:` showing the format. The init skill copies the template, then rewrites the frontmatter with the user's actual triggers.
+
+**Migration of existing registers** (handled in §6 step 2): for the user's existing dotfiles registers (`advocacy.md`, `personal.md`, `dystopian-fiction.md`) which don't have frontmatter yet, add `triggers:` blocks by extracting the trigger phrases from the user's current `skills/prose-craft/SKILL.md` register-detection block. This is a one-shot per register.
+
+### 4.6 Documentation updates
+
+The current repo has documentation files that describe the old architecture explicitly. These must be updated as part of this PR — leaving them stale would leave dangerous misinformation pointing at the soon-to-be-empty install path.
+
+**Required updates:**
+
+- **`MANIFEST.md`** — multiple sections need rewriting:
+  - The `registers/` line (currently `Template + installed-only live data`) becomes `Template only; live registers at ~/.claude/data/prose-craft/registers/`.
+  - The `learning/accumulator.md` line (currently `Clean/empty in the repo; the live accumulator is installed-only`) becomes `Empty template at template-data/; live accumulator at ~/.claude/data/prose-craft/learning/accumulator.md`.
+  - The "Dual location (critical)" key-relationship block needs the most significant rewrite: drop the `~/.claude/plugins/cache/local/prose-craft/<ver>/` references, drop the "Never full-reinstall (it clobbers live data)" warning (no longer accurate), and replace with: "Plugin install at `~/.claude/plugins/cache/prose-craft/prose-craft/<ver>/` is owned by marketplace updates and disposable. Live data lives at `~/.claude/data/prose-craft/` and is invariant under plugin updates."
+- **`README.md`** — update any user-facing setup language that refers to the old install layout. Specifically the "register configuration" instructions, if present, should point at `/prose-craft-init` rather than at editing SKILL.md inline.
+- **`setup/extraction-guide.md`** — already in §4.1's path rewrites; also update step 5 (the "edit SKILL.md to add your register" instruction) to reflect the frontmatter-based discovery (§4.5) instead.
+
+The MANIFEST update is the highest-priority of the three: it currently warns "Never full-reinstall (it clobbers live data)" and that warning becomes actively dangerous after migration (full reinstall is the *expected* update flow now). MANIFEST regeneration is mandatory before the PR merges (per the user's repo-maintenance convention).
+
+### 4.7 Tuning to upstream
 
 Alongside this restructure, sync legitimate plugin-code improvements that exist only in the user's local install today:
 
@@ -174,10 +249,9 @@ dotfiles-claude/claude/
   data/                                  # NEW
     prose-craft/
       registers/
-        advocacy.md
-        dystopian-fiction.md
-        personal.md
-        extraction-artifacts/
+        advocacy.md                      # YAML frontmatter with triggers (§4.5)
+        dystopian-fiction.md             # YAML frontmatter with triggers (§4.5)
+        personal.md                      # YAML frontmatter with triggers (§4.5)
       learning/
         accumulator.md
         ablation-log.md
@@ -185,12 +259,13 @@ dotfiles-claude/claude/
         splits.md
         judge-agreement.md               # if present
         snapshots/
+        extraction-artifacts/            # moved from registers/ (per §3); per-register subdirs
   local-plugins/
     prose-craft/                         # REMOVED entirely
     seo-toolkit/                         # unchanged
 ```
 
-The contents of `claude/local-plugins/prose-craft/2.0.0/{registers,learning}/` move to `claude/data/prose-craft/{registers,learning}/`. The rest of `claude/local-plugins/prose-craft/` (plugin code, `.claude-plugin/`, `skills/`, `agents/`, `scripts/`, `setup/`) is deleted — the marketplace install owns that content now.
+The contents of `claude/local-plugins/prose-craft/2.0.0/{registers,learning}/` move to `claude/data/prose-craft/{registers,learning}/`, with two structural adjustments: (1) `extraction-artifacts/` moves from under `registers/` to under `learning/` (per §3); (2) each register file gains a YAML frontmatter block with its `triggers:` array (per §4.5). The rest of `claude/local-plugins/prose-craft/` (plugin code, `.claude-plugin/`, `skills/`, `agents/`, `scripts/`, `setup/`) is deleted — the marketplace install owns that content now.
 
 ### 5.2 Script changes
 
@@ -211,7 +286,41 @@ if [[ -d "$CLAUDE_SRC/data" ]]; then
 fi
 ```
 
-**`scripts/snapshot-from-windows.sh`:** the existing snapshot block at lines 70-77 reads `~/.claude/plugins/cache/local/*/` into `claude/local-plugins/`. Modify that block to **skip prose-craft permanently** — once prose-craft moves to `data/`, it should never round-trip back into `local-plugins/` even if a stale `cache/local/prose-craft/` lingers on Windows during the interim before Windows migrates:
+**`scripts/snapshot-from-windows.sh`:** this is the more dangerous edit. The script starts with a destructive cleanup at line 30:
+
+```bash
+find "$CLAUDE_DST" -mindepth 1 ! -name '.gitkeep' -exec rm -rf {} + 2>/dev/null || true
+```
+
+That cleanup wipes everything under `claude/` in the dotfiles repo before rebuilding from Windows sources. After our restructure, `claude/data/prose-craft/` will live in dotfiles as the canonical Mac-derived personal data layer. If the snapshot script runs on Windows during the interim — when Windows has no `~/.claude/data/prose-craft/` yet — the destructive cleanup deletes `claude/data/prose-craft/` from the repo working tree, and nothing repopulates it (the local-plugins skip means prose-craft doesn't come back via that path either). One accidental snapshot run would erase Mac's accumulated personal data from dotfiles.
+
+A "skip + no-op" guard is not sufficient. We need a **hard pre-flight check** that aborts the snapshot before the destructive cleanup if any expected source dir is missing on this machine. Concretely, add at the very top of the script (before the cleanup):
+
+```bash
+# Pre-flight: refuse to snapshot if expected sources are missing.
+# Prevents the destructive cleanup below from blowing away dotfiles content
+# that this machine can't reconstruct.
+
+declare -a missing=()
+declare -a expected=(
+  "$CLAUDE_SRC/data/prose-craft"      # add a line per durable per-plugin data tree
+)
+
+for path in "${expected[@]}"; do
+  [[ -e "$path" ]] || missing+=("$path")
+done
+
+if (( ${#missing[@]} > 0 )); then
+  echo "ABORT: expected source paths missing on this machine — refusing to snapshot." >&2
+  printf '  - %s\n' "${missing[@]}" >&2
+  echo "If a machine intentionally lacks these (e.g., not yet migrated), don't snapshot from it." >&2
+  exit 1
+fi
+```
+
+The `expected` list grows over time as new durable data layers are added. The check fails closed — better to abort and tell the user than to silently delete their canonical state.
+
+Then, modify the existing local-plugins block at lines 70-77 to **skip prose-craft permanently** — once prose-craft moves to `data/`, it should never round-trip back into `local-plugins/` even if a stale `cache/local/prose-craft/` lingers on Windows:
 
 ```bash
 for plugin_dir in "$CLAUDE_SRC/plugins/cache/local"/*/; do
@@ -233,7 +342,7 @@ for data_dir in "$CLAUDE_SRC/data"/*/; do
 done
 ```
 
-Both blocks become no-ops if their source path is empty, so they coexist without interfering. The skip rule means that if the snapshot script is accidentally run on Windows during the interim (Windows not yet migrated), it won't recreate `claude/local-plugins/prose-craft/` in the dotfiles repo — and the data block will simply find nothing at `~/.claude/data/prose-craft/` on Windows and no-op.
+The pre-flight check is the load-bearing addition. The local-plugins skip and the new data block are mechanical add-ons.
 
 ## 6. Migration sequence
 
@@ -244,17 +353,32 @@ Personal data is copied (not moved) at every step. The old `cache/local/prose-cr
 ### Phase 1 — Mac migration + repo restructure (this session)
 
 **Step 1 — Update the prose-craft repo.**
-- All §4 changes on a feature branch: path rewrites (§4.1), directory restructure (§4.2), new init skill (§4.3), first-run check in `prose-craft` SKILL.md (§4.4), prose-review.md tuning + plugin.json author field (§4.5).
-- Verify with a clean test install (fresh dir or scratch machine): marketplace install creates `template-data/` at the install root, no `registers/` or `learning/`, and `/prose-craft-init` successfully creates `~/.claude/data/prose-craft/` and walks the extraction.
+- All §4 changes on a feature branch: path rewrites (§4.1, including the prose-craft-learn hardcoded paths), directory restructure (§4.2), new init skill (§4.3), first-run check in `prose-craft` SKILL.md (§4.4), register discovery via frontmatter (§4.5), documentation updates to MANIFEST/README/extraction-guide (§4.6), prose-review.md tuning + plugin.json author field (§4.7).
+- Regenerate `MANIFEST.md` to reflect the new structure per §4.6 — include in the same PR. (Maintaining MANIFEST through PRs is a standing convention; calling it out here because the current MANIFEST contains an actively dangerous warning that would survive otherwise.)
+- Verify with a clean test install (fresh dir or scratch machine): marketplace install creates `template-data/` at the install root, no `registers/` or `learning/`, and `/prose-craft-init` successfully creates `~/.claude/data/prose-craft/`, writes a register with the correct frontmatter `triggers:` block, and `/prose-craft` then discovers it.
+- Open PR; codex-impl-review runs at the PR gate per autonomous mode.
 - Merge to `main`. Bump plugin version to **2.1.0**.
 
 **Step 2 — Mac: migrate personal data to the new location.**
 ```bash
-mkdir -p ~/.claude/data/prose-craft
-cp -R ~/.claude/plugins/cache/local/prose-craft/2.0.0/registers ~/.claude/data/prose-craft/
-cp -R ~/.claude/plugins/cache/local/prose-craft/2.0.0/learning  ~/.claude/data/prose-craft/
+mkdir -p ~/.claude/data/prose-craft/{registers,learning}
+cp -R ~/.claude/plugins/cache/local/prose-craft/2.0.0/registers/*.md ~/.claude/data/prose-craft/registers/
+cp -R ~/.claude/plugins/cache/local/prose-craft/2.0.0/learning/. ~/.claude/data/prose-craft/learning/
+# extraction-artifacts moves from registers/ to learning/ per §3
+if [[ -d ~/.claude/plugins/cache/local/prose-craft/2.0.0/registers/extraction-artifacts ]]; then
+  mv ~/.claude/data/prose-craft/registers/extraction-artifacts ~/.claude/data/prose-craft/learning/
+fi
 ```
-Verify both directories are populated and the file counts match the source.
+Then add YAML frontmatter to each migrated register file (per §4.5). The trigger phrases come from the user's current `skills/prose-craft/SKILL.md` register-detection block — extract them inline. Example for `personal.md`:
+```yaml
+---
+triggers:
+  - personal essays
+  - blog posts
+  - reflective writing
+---
+```
+Verify: every register file in `~/.claude/data/prose-craft/registers/` now has a `triggers:` frontmatter block, and the file counts under registers/ and learning/ match what was copied.
 
 **Step 3 — Mac: switch from local install to marketplace install.**
 - `~/.claude/settings.json`: remove or set `prose-craft@local: false`; ensure `prose-craft@prose-craft: true`.
