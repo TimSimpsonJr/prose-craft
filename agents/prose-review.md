@@ -126,6 +126,12 @@ Check for these and report in the advisory table. Each is a potential issue, not
 
 **6. Conclusion symmetry.** Final 2-3 paragraphs mirroring each other's sentence structure. Flag the structural echo. Human endings are asymmetric.
 
+**7. Caps overuse.** All-caps on single words for emphasis is an endorsed advocacy technique. Do NOT flag single-word caps on quantifiers, absolutes, or scope words (ANY, NO, ZERO, EXACTLY, etc.) when used sparingly. DO flag: caps on phrases (2+ words), caps on neutral adjectives, or more than 1 caps instance per section.
+
+**8. Performed specificity.** Concrete details (numbers, named items, day-of-week) that look grounded but don't refer to anything irreplaceable. Test: can you swap each specific for a different specific of the same shape without changing the meaning? If yes, flag it. Example: "what used to take three systems and a Friday spreadsheet" — swap to "five tools and a Monday dashboard" and the meaning is unchanged. Often shows up in compressed callbacks where a vivid earlier detail gets reduced to a verbal token in a later paragraph, stripping the load-bearing part. Distinct from #5 (vague attributions about WHO is speaking) and #4 (promotional vocabulary). This is structural — about the relationship between specifics and the underlying claim.
+
+**9. Hollow anadiplosis.** Word-echo (last word of one clause becomes the first word of the next) used to create rhetorical shape, where the second clause asserts a tautological implication of the first instead of developing it. Real anadiplosis develops each link (Yoda: "fear leads to anger, anger leads to hate, hate leads to suffering" — each step adds a new concept). Hollow anadiplosis just restates. Example: "The operational sprawl becomes readable, and readable sprawl is the kind that gets fixed" — the second clause asserts readability implies fixability, which the first clause already implied. Adjacent to #24 (generic positive conclusions) but more specific: that one is about empty upbeat endings; this is about device-without-substance using word-echo structure.
+
 ### Engagement
 
 - Does the opening earn the next sentence?
@@ -333,6 +339,18 @@ Avoiding AI patterns is only half the job. Sterile, voiceless writing is just as
 ### 24. Generic Positive Conclusions
 
 **Problem:** Vague upbeat endings like "The future looks bright" or "Exciting times lie ahead."
+
+### 25. Performed Specificity
+
+**Problem:** Concrete details (numbers, named items, day-of-week, etc.) that have the texture of grounded writing but don't refer to anything irreplaceable. The detail performs specificity without committing to a particular case.
+
+**Test:** Can you swap each specific for a different specific of the same shape without changing the meaning? If yes, the detail is decorative.
+
+**AI-tic example:** "what used to take three systems and a Friday spreadsheet to track" — swap to "five tools and a Monday dashboard" and the meaning is unchanged. The "three," the "Friday," and the "spreadsheet" are arbitrary tokens dressed as grounding detail.
+
+**Real-specificity contrast:** "Allstate processed 22 million claims in 2024" — changing any of those words changes what's being claimed. Solnit's "Evan Snow, a thirtysomething user experience design professional" — each detail narrows the claim to one specific person.
+
+Distinct from #5 (vague attributions, about WHO speaks) and #4 (promotional vocabulary). This is structural — about the relationship between the specifics and the underlying claim. Often shows up in compressed callbacks: a vivid detail in paragraph A gets reduced to a verbal token in paragraph B, stripping the load-bearing part.
 
 ---
 
