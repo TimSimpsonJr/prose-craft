@@ -83,7 +83,7 @@ Total: ~18 substitutions across 3 files. Each `${CLAUDE_PLUGIN_ROOT}/registers/`
 
 ### 4.2 Directory restructuring
 
-The plugin repo's own `registers/` and `learning/` directories disappear from the repo root. Their reference content moves to `template-data/`:
+The plugin repo's own `registers/` and `learning/` directories disappear from the repo root. Their reference content moves to `template-data/`. A new `skills/prose-craft-init/` skill takes over setup and extraction:
 
 ```
 prose-craft/
@@ -92,33 +92,68 @@ prose-craft/
       register-template.md        # was registers/register-template.md
     learning/
       accumulator.md              # was learning/accumulator.md (the empty starter)
+  skills/
+    prose-craft/SKILL.md          # paths rewritten per §4.1; first-run check per §4.4
+    prose-craft-learn/SKILL.md    # paths rewritten per §4.1
+    prose-craft-init/SKILL.md     # NEW — see §4.3
   registers/                      # REMOVED
   learning/                       # REMOVED
-  skills/                         # unchanged (paths rewritten per §4.1)
   agents/                         # unchanged structurally
   scripts/                        # unchanged
-  setup/                          # unchanged (paths rewritten per §4.1)
+  setup/                          # unchanged (still contains pass-1/pass-2/brief-stripping/sample-collection prompts referenced by the init skill)
 ```
 
-`template-data/` is documented in the README as "starter content; the plugin copies these into `~/.claude/data/prose-craft/` on first invocation. Do not edit your active registers here — edit them at the user-data path."
+`template-data/` is documented in the README as "starter content; the init skill copies these into `~/.claude/data/prose-craft/` on first run. Do not edit your active registers here — edit them at the user-data path."
 
-### 4.3 First-run init
+### 4.3 The init skill (`/prose-craft-init`)
 
-At the top of `skills/prose-craft/SKILL.md`, before any generation logic, add:
+A new skill at `skills/prose-craft-init/SKILL.md` consolidates the work that today is spread across the five `setup/*.md` documents (which require the user to drive the process manually with Sonnet). The init skill is invocable as `/prose-craft-init`.
 
-> **First-run setup.** Before doing anything else:
+**Frontmatter:**
+
+```yaml
+---
+name: prose-craft-init
+description: Initialize prose-craft on this machine and extract a voice register. Creates the user data directory, copies templates, and walks you through the extraction process to create your first register. Also use this to add a new register later. Invoke via /prose-craft-init.
+---
+```
+
+**Responsibilities:**
+
+1. **Bootstrap the data directory** (idempotent, safe to re-run):
+   - If `~/.claude/data/prose-craft/` doesn't exist, create `registers/` and `learning/snapshots/` underneath it.
+   - Copy every file under `${CLAUDE_PLUGIN_ROOT}/template-data/` into the matching location under `~/.claude/data/prose-craft/`, only when the target file doesn't already exist. This means subsequent plugin updates can add new template files without ever overwriting user data.
+
+2. **Detect state and route:**
+   - **Fresh install** (no registers besides `register-template.md`): walk through first-time extraction (step 3).
+   - **Existing setup** (at least one populated register): ask whether the user wants to add a new register or re-extract an existing one. Default to "add new."
+
+3. **Extraction walkthrough** (current process — to be replaced by the planned extraction/learning rework, but works as-is until then):
+   1. Ask the user what kind of writing this register is for; derive a register name (e.g., `advocacy`, `personal`).
+   2. Reference `${CLAUDE_PLUGIN_ROOT}/setup/sample-collection.md`: ask the user for 10-20 samples of their own writing in this register, plus 10 baseline samples (Claude-default outputs on similar topics) — guide them through how to generate the baseline batch if they don't already have it.
+   3. Dispatch a Sonnet agent with the prompt at `${CLAUDE_PLUGIN_ROOT}/setup/pass-1-prompt.md`, filling in P1 (baselines) and P2 (user samples). Save the output to a scratch location inside `~/.claude/data/prose-craft/learning/extraction-artifacts/<register>/pass-1-output.md`.
+   4. Dispatch a second Sonnet agent with `${CLAUDE_PLUGIN_ROOT}/setup/pass-2-prompt.md` over the pass-1 output. Save to `pass-2-output.md` in the same scratch location.
+   5. Convert the pass-2 output into a register file using the structure in `${CLAUDE_PLUGIN_ROOT}/template-data/registers/register-template.md`, and save to `~/.claude/data/prose-craft/registers/<register>.md`.
+   6. If the user wants brief-stripping support, walk through `${CLAUDE_PLUGIN_ROOT}/setup/brief-stripping-guide.md`.
+
+4. **Confirm and exit:** tell the user the register is ready and how to use it (`/prose-craft` will detect the new register on next invocation).
+
+The legacy `setup/extraction-guide.md` becomes redundant once the init skill exists — the skill *is* the guide, executable. We'll keep `extraction-guide.md` as a static reference (for users who want to read the process top-down before running it) but it stops being the primary entry point. The other four `setup/*.md` documents (pass-1, pass-2, brief-stripping, sample-collection) remain as prompts/guides that the init skill reads at runtime.
+
+**Note on future rework:** the user has flagged that the extraction and learning processes will be reworked in a follow-on session. The init skill's bootstrap responsibility (§4.3.1) is stable; the extraction walkthrough (§4.3.3) will likely be replaced wholesale by the new process. The skill structure provides a stable insertion point for whatever the new process becomes.
+
+### 4.4 First-run check inside `skills/prose-craft/SKILL.md`
+
+At the top of `skills/prose-craft/SKILL.md`, before any generation logic, add a small guard:
+
+> **Verify setup.** Before doing anything else:
 >
-> 1. Check whether `~/.claude/data/prose-craft/` exists. If yes, skip to step 5.
-> 2. Create `~/.claude/data/prose-craft/registers/` and `~/.claude/data/prose-craft/learning/snapshots/`.
-> 3. Copy every file under `${CLAUDE_PLUGIN_ROOT}/template-data/` into the corresponding location under `~/.claude/data/prose-craft/`. (Only copy files that don't already exist at the destination.)
-> 4. Tell the user: "Initialized prose-craft data directory at `~/.claude/data/prose-craft/`. Before generating prose you need at least one register. Copy `~/.claude/data/prose-craft/registers/register-template.md` to e.g. `personal.md` and fill it in. See `${CLAUDE_PLUGIN_ROOT}/setup/extraction-guide.md` for guidance." Stop here.
-> 5. List files in `~/.claude/data/prose-craft/registers/` excluding `register-template.md`. If empty, tell the user the same setup message as step 4 and stop.
+> 1. Check whether `~/.claude/data/prose-craft/registers/` contains at least one register file other than `register-template.md`. If yes, proceed with normal generation.
+> 2. If no register files exist, tell the user: "prose-craft isn't initialized on this machine yet. Run `/prose-craft-init` to create your first register." Stop.
 
-The "only copy files that don't already exist" rule means subsequent plugin updates can add new template files without overwriting user data. The first-run check (`~/.claude/data/prose-craft/` exists) is a fast path so the init logic only fires once per machine.
+The guard is intentionally narrow: the `prose-craft` skill does generation, not setup. Anything that touches the data directory or walks the user through extraction lives in `/prose-craft-init`. This keeps the two skills cleanly separated by responsibility.
 
-The same template-copy pattern applies inside `skills/prose-craft-learn/SKILL.md` for any new learning-side files added in future template updates — though for now `accumulator.md` is the only one.
-
-### 4.4 Tuning to upstream
+### 4.5 Tuning to upstream
 
 Alongside this restructure, sync legitimate plugin-code improvements that exist only in the user's local install today:
 
@@ -159,7 +194,7 @@ The contents of `claude/local-plugins/prose-craft/2.0.0/{registers,learning}/` m
 
 ### 5.2 Script changes
 
-**`scripts/install-mac.sh`:** keep the existing `Copying local plugins` loop (still needed for `seo-toolkit` and any future local plugins) but it will naturally no-op for prose-craft once `claude/local-plugins/prose-craft/` is gone. Add a new step before or after:
+**`scripts/install-mac.sh`:** keep the existing `Copying local plugins` loop (still needed for `seo-toolkit` and any future local plugins). Once `claude/local-plugins/prose-craft/` is removed from the repo it stops iterating over prose-craft naturally — no explicit skip needed. Add a new step before or after:
 
 ```bash
 echo "Copying user data layers..."
@@ -176,7 +211,17 @@ if [[ -d "$CLAUDE_SRC/data" ]]; then
 fi
 ```
 
-**`scripts/snapshot-from-windows.sh`:** the existing snapshot block at lines 70-77 reads `~/.claude/plugins/cache/local/*/` into `claude/local-plugins/`. Keep that block for non-prose-craft local plugins. Add a parallel block:
+**`scripts/snapshot-from-windows.sh`:** the existing snapshot block at lines 70-77 reads `~/.claude/plugins/cache/local/*/` into `claude/local-plugins/`. Modify that block to **skip prose-craft permanently** — once prose-craft moves to `data/`, it should never round-trip back into `local-plugins/` even if a stale `cache/local/prose-craft/` lingers on Windows during the interim before Windows migrates:
+
+```bash
+for plugin_dir in "$CLAUDE_SRC/plugins/cache/local"/*/; do
+  plugin_name="$(basename "$plugin_dir")"
+  if [[ "$plugin_name" == "prose-craft" ]]; then continue; fi   # data now lives in claude/data/prose-craft/
+  ...
+done
+```
+
+Add a parallel block for the data layer:
 
 ```bash
 mkdir -p "$CLAUDE_DST/data"
@@ -188,58 +233,104 @@ for data_dir in "$CLAUDE_SRC/data"/*/; do
 done
 ```
 
-Both blocks become no-ops if their source path is empty, so they coexist without interfering.
+Both blocks become no-ops if their source path is empty, so they coexist without interfering. The skip rule means that if the snapshot script is accidentally run on Windows during the interim (Windows not yet migrated), it won't recreate `claude/local-plugins/prose-craft/` in the dotfiles repo — and the data block will simply find nothing at `~/.claude/data/prose-craft/` on Windows and no-op.
 
 ## 6. Migration sequence
 
-The order is chosen to keep a usable plugin installed at every step. Personal data is copied (not moved) until the new location is verified working.
+The rollout is **two phases**. Phase 1 happens now on Mac, while the user is away from Windows. Phase 2 happens when the user is home again. During the interim between phases, both machines remain operational: Mac on the new architecture; Windows on the legacy local-plugin setup. Mac is the canonical source for personal data during the interim.
 
-**Step 1 — Update the prose-craft repo (one branch, one PR).**
-- Path rewrites (§4.1), directory restructure (§4.2), first-run init (§4.3), prose-review.md tuning + plugin.json author field (§4.4).
-- Verify with a clean test install (e.g., temporary fresh `~/.claude/` or a different machine): marketplace install creates the install path with `template-data/` present, no `registers/` or `learning/` at the install root, and first-run init successfully creates `~/.claude/data/prose-craft/`.
-- Merge to main. Bump plugin version (suggest 2.1.0).
+Personal data is copied (not moved) at every step. The old `cache/local/prose-craft/` is only deleted after the new install is verified, so a rollback path exists at each transition.
 
-**Step 2 — Migrate personal data on each machine.**
-On Mac:
-```
+### Phase 1 — Mac migration + repo restructure (this session)
+
+**Step 1 — Update the prose-craft repo.**
+- All §4 changes on a feature branch: path rewrites (§4.1), directory restructure (§4.2), new init skill (§4.3), first-run check in `prose-craft` SKILL.md (§4.4), prose-review.md tuning + plugin.json author field (§4.5).
+- Verify with a clean test install (fresh dir or scratch machine): marketplace install creates `template-data/` at the install root, no `registers/` or `learning/`, and `/prose-craft-init` successfully creates `~/.claude/data/prose-craft/` and walks the extraction.
+- Merge to `main`. Bump plugin version to **2.1.0**.
+
+**Step 2 — Mac: migrate personal data to the new location.**
+```bash
+mkdir -p ~/.claude/data/prose-craft
 cp -R ~/.claude/plugins/cache/local/prose-craft/2.0.0/registers ~/.claude/data/prose-craft/
 cp -R ~/.claude/plugins/cache/local/prose-craft/2.0.0/learning  ~/.claude/data/prose-craft/
 ```
-On Windows: the equivalent paths under the user's home directory.
+Verify both directories are populated and the file counts match the source.
 
-Verify both directories are populated and the file count matches the source.
+**Step 3 — Mac: switch from local install to marketplace install.**
+- `~/.claude/settings.json`: remove or set `prose-craft@local: false`; ensure `prose-craft@prose-craft: true`.
+- `~/.claude/plugins/installed_plugins.json`: delete the `prose-craft@local` entry. Claude Code will recreate the `prose-craft@prose-craft` entry on next launch if the marketplace is registered.
+- `~/.claude/plugins/known_marketplaces.json`: re-add the `prose-craft` marketplace pointing at `https://github.com/TimSimpsonJr/prose-craft.git`.
+- Restart Claude Code; verify `/prose-craft`, `/prose-craft-init`, and `/prose-craft-learn` all resolve from the marketplace install at `~/.claude/plugins/cache/prose-craft/prose-craft/2.1.0/`.
+- Delete `~/.claude/plugins/cache/local/prose-craft/` (the old local install).
 
-**Step 3 — Switch from local install to marketplace install.**
-On each machine:
-- `settings.json`: set `prose-craft@local: false` (or delete the key), set `prose-craft@prose-craft: true`.
-- `installed_plugins.json`: delete the `prose-craft@local` entry, restore the `prose-craft@prose-craft` entry (Claude Code will recreate it on next launch if the marketplace entry is also intact).
-- `known_marketplaces.json`: ensure the `prose-craft` marketplace is registered (re-add the entry pointing at `https://github.com/TimSimpsonJr/prose-craft.git` if missing).
-- Restart Claude Code; verify `/prose-craft` and `/prose-craft-learn` resolve.
-- Delete `~/.claude/plugins/cache/local/prose-craft/` (and its backup, if still present).
+**Step 4 — dotfiles-claude: restructure to ship the personal data layer.**
+- On the dotfiles repo, on a branch:
+  - Create `claude/data/prose-craft/` populated from the now-canonical Mac state: `cp -R ~/.claude/data/prose-craft/. claude/data/prose-craft/`.
+  - Delete `claude/local-plugins/prose-craft/` (Windows will pull from `claude/data/` when it migrates in Phase 2; the legacy local-plugin tree is no longer needed and would cause confusion if kept).
+  - Update `scripts/install-mac.sh` and `scripts/snapshot-from-windows.sh` per §5.2 (add data block to both; add the prose-craft skip in snapshot's local-plugins loop).
+  - Update the README's "What's in here" section: prose-craft is no longer listed under "two local plugins"; it's now described as "one local plugin (seo-toolkit), plus per-plugin user data under `claude/data/`."
+- Commit and push the dotfiles branch; merge to main.
 
-**Step 4 — Restructure the dotfiles-claude repo.**
-- Branch off main: move `claude/local-plugins/prose-craft/2.0.0/{registers,learning}/` → `claude/data/prose-craft/{registers,learning}/`. Delete the rest of `claude/local-plugins/prose-craft/`.
-- Update `scripts/install-mac.sh` and `scripts/snapshot-from-windows.sh` per §5.2.
-- Re-run `snapshot-from-windows.sh` on Windows; verify it produces no spurious changes (data should already match what was migrated in step 2).
-- Commit and push.
+**Phase 1 exit criteria:**
+- `/prose-craft` works on Mac, sourcing data from `~/.claude/data/prose-craft/`.
+- Dotfiles repo's `main` branch contains the canonical personal data layer at `claude/data/prose-craft/` and no longer contains `claude/local-plugins/prose-craft/`.
+- Windows is untouched; its `~/.claude/plugins/cache/local/prose-craft/` continues to function locally (the user is not actively syncing it to dotfiles during this interim).
 
-**Step 5 — Update the dotfiles-claude README** to reflect the new structure (the "What's in here" section currently lists prose-craft under "two local plugins"; update it to "one local plugin (seo-toolkit), and per-plugin user data under `claude/data/`").
+### Phase 2 — Windows migration (when user is home)
+
+Windows currently runs prose-craft as a local plugin at `~/.claude/plugins/cache/local/prose-craft/2.0.0/`, with personal data embedded inside. The migration mirrors Mac's Phase 1 steps 2-3 but pulls the personal data layer from dotfiles (which has Mac's accumulated state) rather than from the local install (which is now stale relative to whatever was changed on Mac during the interim).
+
+**Step W1 — Pull dotfiles to get the latest data layer.**
+```
+cd %USERPROFILE%\dotfiles-claude  (or wherever the clone lives on Windows)
+git pull
+```
+This brings down `claude/data/prose-craft/` reflecting whatever Mac has accumulated during the interim.
+
+**Step W2 — Copy the personal data layer to the new location.**
+```
+xcopy /E /I dotfiles-claude\claude\data\prose-craft  %USERPROFILE%\.claude\data\prose-craft
+```
+(Or whatever the user's preferred Windows copy invocation is — install-mac.sh's logic could be ported to a `install-windows.ps1` later, but for this one-shot migration a manual copy is fine.)
+
+**Step W3 — Switch from local install to marketplace install on Windows.**
+- `%USERPROFILE%\.claude\settings.json`: remove `prose-craft@local: true`; ensure `prose-craft@prose-craft: true`.
+- `%USERPROFILE%\.claude\plugins\installed_plugins.json`: delete the `prose-craft@local` entry.
+- `%USERPROFILE%\.claude\plugins\known_marketplaces.json`: ensure the `prose-craft` marketplace is registered.
+- Restart Claude Code; verify `/prose-craft`, `/prose-craft-init`, `/prose-craft-learn` resolve from the marketplace install.
+- Delete `%USERPROFILE%\.claude\plugins\cache\local\prose-craft\`.
+
+**Step W4 — Confirm bidirectional sync works.**
+- Run `bash scripts/snapshot-from-windows.sh` on Windows; verify the dotfiles diff is empty (the data layer was just copied from dotfiles in step W2, so the snapshot should produce no changes).
+- After this point, Windows is also a valid canonical source — both machines write to `claude/data/prose-craft/` in dotfiles.
+
+**Phase 2 exit criteria:**
+- `/prose-craft` works on Windows, sourcing data from `~/.claude/data/prose-craft/`.
+- `snapshot-from-windows.sh` produces no spurious diffs.
+- Both machines can be sync-canonical (whichever last ran the dotfiles round-trip wins).
 
 ## 7. Risks and mitigations
 
-**Personal data loss during migration.** Each migration step copies; nothing is deleted until the new location is verified. Old `cache/local/prose-craft/` survives step 2 and only gets removed in step 3 after marketplace install is confirmed working. Both machines' personal data exists in dotfiles as a third copy at all times.
+**Personal data loss during migration.** Each migration step copies; nothing is deleted until the new location is verified. Old `cache/local/prose-craft/` survives Phase 1 step 2 and only gets removed in step 3 after the marketplace install is confirmed working. The dotfiles repo holds a third copy at all times. Phase 2 on Windows similarly copies the data layer from dotfiles before any local cleanup.
 
-**Marketplace install on a never-before-set-up machine.** First-run init (§4.3) creates the directory tree and points the user at the setup guide. The plugin gracefully refuses to generate until at least one register exists.
+**Marketplace install on a never-before-set-up machine.** The `/prose-craft-init` skill (§4.3) creates the directory tree and walks the user through extraction. The `prose-craft` skill itself refuses to generate until at least one register exists (§4.4).
 
-**Future plugin updates introducing new files under `registers/` or `learning/`.** Those new files are added to `template-data/`, not to user data. First-run init only copies templates if the target doesn't exist — so a plugin update that adds a new template file will reach the user, but never overwrites their existing files.
+**Future plugin updates introducing new template files.** New files added under `template-data/` reach users via the init skill's idempotent copy step. The "only copy if target doesn't exist" rule means user data is never overwritten — new template files just appear at the user-data path on next `/prose-craft-init` invocation, while existing user-edited files are left alone.
 
-**`~` not resolving in some context.** Audited: every path reference is in markdown (read by Claude, which expands `~`) or shell scripts (which expand `~` natively). No literal-string path concatenation in `discipline_check.py` for user data.
+**`~` not resolving in some context.** Audited: every path reference is in markdown (read by Claude, which expands `~`) or shell scripts (which expand `~` natively). `discipline_check.py` doesn't reference user-data paths.
 
-**Snapshot script writing to the wrong place after Windows pulls the new repo.** The two snapshot blocks (local-plugins and data) operate on different source paths, so they don't collide. The first re-run on Windows is the moment to verify — if it produces an unexpected diff, halt and inspect before committing.
+**Interim-state divergence between Mac and Windows.** During the gap between Phase 1 and Phase 2, Mac is the canonical source. Windows continues to operate on its legacy local install, with its own (now-stale) copy of personal data. Mitigations:
+- The user is aware of this asymmetry and won't make meaningful register/learning changes on Windows during the interim.
+- The snapshot script's permanent skip for prose-craft in the local-plugins loop (§5.2) prevents Windows from accidentally syncing a stale view of the data back into dotfiles if the script is run during the interim.
+- Phase 2 step W2 pulls the personal data layer from dotfiles (which reflects Mac's state), explicitly *not* from Windows' stale cache/local copy. The Windows cache/local copy serves only as a safety net until Step W3 confirms the marketplace install works.
+
+**Snapshot script writing to the wrong place after Windows pulls the new repo.** The two snapshot blocks (local-plugins with prose-craft skip, and data) operate on different source paths. The first run on Windows post-migration should produce no diffs — if it does, halt and inspect before committing.
+
+**Marketplace install picking up the wrong version mid-restructure.** The plugin bump to 2.1.0 ensures any old `prose-craft@prose-craft` install (still at 2.0.0) reinstalls cleanly. Claude Code recognizes the version bump and refreshes from the marketplace clone on next launch.
 
 ## 8. Out of scope (future work)
 
-- Extraction and learning process rework — planned for a separate session.
-- Whether craft-review.md should ship a "personal style examples" extension point (so the Doctorow/Housel-style references could live in a register-like personal layer rather than the agent body). Deferred to the extraction/learning rework.
+- **Extraction and learning process rework** — planned for a separate session immediately after this design lands. The init skill (§4.3) is designed as a stable insertion point: its bootstrap responsibilities are independent of which extraction process it runs, so swapping `setup/pass-1-prompt.md` + `setup/pass-2-prompt.md` for the new approach is a localized change inside the skill body when the time comes.
+- Whether `craft-review.md` should ship a "personal style examples" extension point (so the Doctorow/Housel-style references could live in a register-like personal layer rather than the agent body). Deferred to the extraction/learning rework.
 - Applying the `~/.claude/data/<plugin>/` pattern to other plugins (e.g., seo-toolkit). The pattern is reusable, but only prose-craft is migrating in this design.
-- A `/prose-craft-init` standalone command (currently the init lives inline in the prose-craft skill). If the inline approach gets noisy, an explicit init command can be added later without breaking anything.
+- A native `install-windows.ps1` script in the dotfiles repo. The Phase 2 Windows migration in §6 uses a manual `xcopy` because it's a one-shot operation; if the user later wants a repeatable Windows install path, that's a small follow-on.
