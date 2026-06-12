@@ -1,4 +1,4 @@
-"""Deterministic discipline-check: the objective half of the prose-craft outcome gate.
+"""Deterministic discipline-check: the objective half of the copydesk outcome gate.
 
 Counts banned-construction violations in a markdown/prose file. In ``--diff`` mode it
 reports whether a rewrite INTRODUCED a new violation (a count going up for any check),

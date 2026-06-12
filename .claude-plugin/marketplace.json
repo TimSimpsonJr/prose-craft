@@ -1,15 +1,15 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "prose-craft",
-  "description": "Voice-driven prose quality system with modular registers and learning loop.",
+  "name": "copydesk",
+  "description": "Voice-driven prose with a dual review gate and a learning loop.",
   "owner": {
     "name": "Tim Simpson",
     "url": "https://github.com/TimSimpsonJr"
   },
   "plugins": [
     {
-      "name": "prose-craft",
-      "description": "Voice registers, craft rules, dual review gate, and learning loop.",
+      "name": "copydesk",
+      "description": "Writes findings up in your own voice, with an AI-pattern review gate and a learning loop.",
       "source": "./",
       "category": "productivity"
     }

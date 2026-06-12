@@ -1,13 +1,13 @@
 ---
-name: prose-craft-learn
-description: Analyze manual edits to prose-craft output and propose improvements to registers, skill rules, and review agents. Invoke after manually editing a piece generated with prose-craft. Also invoked by prose-craft during the review gate to save snapshots.
+name: learn
+description: Analyze manual edits to copydesk output and propose improvements to registers, skill rules, and review agents. Invoke after manually editing a piece generated with copydesk. Also invoked by copydesk during the review gate to save snapshots.
 ---
 
-# Prose Craft Learn
+# Copydesk Learn
 
-This skill manages the learning loop for prose-craft. It captures snapshots of generated text at key pipeline stages, then (when invoked directly) dispatches the learn-review agent to analyze what the user changed by hand and propose improvements to the system.
+This skill manages the learning loop for copydesk. It captures snapshots of generated text at key pipeline stages, then (when invoked directly) dispatches the learn-review agent to analyze what the user changed by hand and propose improvements to the system.
 
-This skill is independently invocable. It does not require prose-craft to be active in the current session. It reads all files from disk.
+This skill is independently invocable. It does not require copydesk to be active in the current session. It reads all files from disk.
 
 ## Argument Detection
 
@@ -15,33 +15,33 @@ Check the invocation arguments to determine which mode to run.
 
 - `snapshot post-review`, `snapshot post-fixes`, or `snapshot suppression` --> Mode 1: Snapshot Save
 - `evaluators` --> Mode 3: Evaluator Correction
-- A file path argument (e.g., `/prose-craft-learn path/to/edited-file.md`) --> Mode 2: Learning Analysis, using that file
-- No arguments (just `/prose-craft-learn`) --> Mode 2: Learning Analysis, using the most recent snapshot set
+- A file path argument (e.g., `/copydesk:learn path/to/edited-file.md`) --> Mode 2: Learning Analysis, using that file
+- No arguments (just `/copydesk:learn`) --> Mode 2: Learning Analysis, using the most recent snapshot set
 
 ## Mode 1: Snapshot Save
 
-Invoked by the prose-craft skill during the review gate workflow. Does not interact with the user.
+Invoked by the copydesk skill during the review gate workflow. Does not interact with the user.
 
 ### `snapshot post-review`
 
-1. Create the directory `~/.claude/data/prose-craft/learning/snapshots/` if it doesn't exist.
+1. Create the directory `~/.claude/data/copydesk/learning/snapshots/` if it doesn't exist.
 
 2. Derive a piece filename from the output file being written. Strip the extension and any path components. For example, `/home/user/blog/my-post.md` becomes `my-post`.
 
 3. Generate a timestamp: `YYYY-MM-DD-HHmm` (24-hour, local time).
 
 4. Write the CURRENT generated text (the text after review agents ran and hard fails were fixed, before the user sees advisories) to:
-   `~/.claude/data/prose-craft/learning/snapshots/{piece-filename}-{timestamp}-post-review.md`
+   `~/.claude/data/copydesk/learning/snapshots/{piece-filename}-{timestamp}-post-review.md`
 
 5. Write the **generation brief** to:
-   `~/.claude/data/prose-craft/learning/snapshots/{piece-filename}-{timestamp}-brief.md`
+   `~/.claude/data/copydesk/learning/snapshots/{piece-filename}-{timestamp}-brief.md`
 
    The brief is everything that drove generation: the user's request, the source material (transcripts, research notes, outline), and any design-doc/brief used. This is what lets a piece be **regenerated** later for the held-out gate, so capture it verbatim rather than summarizing. If generation used a design doc on disk, record its path here too.
 
 6. Write the review agent findings (both the prose review findings and the craft review advisory table) to:
-   `~/.claude/data/prose-craft/learning/snapshots/{piece-filename}-{timestamp}-review-findings.md`
+   `~/.claude/data/copydesk/learning/snapshots/{piece-filename}-{timestamp}-review-findings.md`
 
-7. Update or create `~/.claude/data/prose-craft/learning/snapshots/manifest.json`. If the file exists, read it first and append to the `snapshots` array. If it doesn't exist, create it with a new array.
+7. Update or create `~/.claude/data/copydesk/learning/snapshots/manifest.json`. If the file exists, read it first and append to the `snapshots` array. If it doesn't exist, create it with a new array.
 
    Entry format:
    ```json
@@ -60,7 +60,7 @@ Invoked by the prose-craft skill during the review gate workflow. Does not inter
 ### `snapshot post-fixes`
 
 1. Write the current text (after the user accepted/rejected/modified all advisory rows) to:
-   `~/.claude/data/prose-craft/learning/snapshots/{piece-filename}-{timestamp}-post-fixes.md`
+   `~/.claude/data/copydesk/learning/snapshots/{piece-filename}-{timestamp}-post-fixes.md`
 
    Use the same piece filename and timestamp as the matching `post-review` entry. Find the match by looking for the most recent manifest entry whose `piece` field matches the current output file.
 
@@ -79,10 +79,10 @@ Invoked by the prose-craft skill during the review gate workflow. Does not inter
 
 ### `snapshot suppression`
 
-Records the orchestrator's **decision ledger**: every finding both review agents produced, and what the orchestrator did with each. This is the Gap-F instrumentation: it makes visible whether a dropped suggestion was the reviewer proposing badly or the orchestrator filtering badly (opposite fixes). Invoked by the prose-craft skill after it decides what to surface.
+Records the orchestrator's **decision ledger**: every finding both review agents produced, and what the orchestrator did with each. This is the Gap-F instrumentation: it makes visible whether a dropped suggestion was the reviewer proposing badly or the orchestrator filtering badly (opposite fixes). Invoked by the copydesk skill after it decides what to surface.
 
 1. Write a suppression log to:
-   `~/.claude/data/prose-craft/learning/snapshots/{piece-filename}-{timestamp}-suppression.md`
+   `~/.claude/data/copydesk/learning/snapshots/{piece-filename}-{timestamp}-suppression.md`
 
    Use the same piece filename and timestamp as the matching `post-review` entry.
 
@@ -99,11 +99,11 @@ Records the orchestrator's **decision ledger**: every finding both review agents
 
 ## Mode 2: Learning Analysis
 
-Invoked directly by the user after they have finished manually editing a piece that was generated with prose-craft.
+Invoked directly by the user after they have finished manually editing a piece that was generated with copydesk.
 
 ### Step 1: Load the minibatch
 
-Read `~/.claude/data/prose-craft/learning/snapshots/manifest.json`.
+Read `~/.claude/data/copydesk/learning/snapshots/manifest.json`.
 
 **If a file path was provided** as an argument, the target is that single piece: match by piece name (derived from the path as in Mode 1; most recent by timestamp if several match).
 
@@ -123,7 +123,7 @@ For each piece, read its `reviewFindings` file, and its `suppressionLog` file if
 
 ### Step 3: Load accumulator
 
-Read `~/.claude/data/prose-craft/learning/accumulator.md`. If it doesn't exist, proceed with an empty accumulator and tell the agent to use higher evidence thresholds (less prior evidence to cross-reference). The accumulator's **Longitudinal Guidance** section is PROTECTED context: pass it to the agent as read-only. The agent must not propose edits to it.
+Read `~/.claude/data/copydesk/learning/accumulator.md`. If it doesn't exist, proceed with an empty accumulator and tell the agent to use higher evidence thresholds (less prior evidence to cross-reference). The accumulator's **Longitudinal Guidance** section is PROTECTED context: pass it to the agent as read-only. The agent must not propose edits to it.
 
 ### Step 4: Determine register(s)
 
@@ -132,16 +132,16 @@ Read the `register` field from each minibatch entry. A minibatch is normally sin
 ### Step 5: Load current rules and held-out splits
 
 Read these:
-- The register file(s) for the batch: `~/.claude/data/prose-craft/registers/{register}.md` (includes the register's `## Demonstrated Edits` exemplars)
-- The skill file: `${CLAUDE_PLUGIN_ROOT}/skills/prose-craft/SKILL.md`
+- The register file(s) for the batch: `~/.claude/data/copydesk/registers/{register}.md` (includes the register's `## Demonstrated Edits` exemplars)
+- The skill file: `${CLAUDE_PLUGIN_ROOT}/skills/write/SKILL.md`
 - The prose review agent: `${CLAUDE_PLUGIN_ROOT}/agents/prose-review.md`
 - The craft review agent: `${CLAUDE_PLUGIN_ROOT}/agents/craft-review.md`
-- The held-out splits: `~/.claude/data/prose-craft/learning/splits.md` if it exists (defines the train / selection / test sets the gate uses). If absent, the gate falls back to retrospective checks on available snapshots.
+- The held-out splits: `~/.claude/data/copydesk/learning/splits.md` if it exists (defines the train / selection / test sets the gate uses). If absent, the gate falls back to retrospective checks on available snapshots.
 
 ### Step 6: Dispatch the learning agent (the optimizer)
 
 Use the Agent tool:
-- `subagent_type`: "prose-craft:learn-review"
+- `subagent_type`: "copydesk:learn-review"
 - `model`: opus
 - `description`: "Analyze edits and propose improvements"
 - `prompt`: Include the per-piece inputs for **all N pieces** (clearly labeled by piece) plus the shared context once:
@@ -214,7 +214,7 @@ For each taste edit being gated:
 1. Pick a held-out **selection-set** piece (`D_sel` from `splits.md`) in the edit's register that exercises the pattern, and use its captured brief.
 2. Regenerate that brief twice: once under the **current** skill-state (A) and once under the **edited** skill-state (B). Generate **several samples each** (2-3) and treat them as a set, to average out generation noise. (The regeneration mechanics are the generative-gate harness, documented below.)
 3. Present the user an **A/B comparison** (blind if practical) and ask: *which is more you* — more in-register? Capture the human pick. **The human is the only gatekeeper.**
-4. **Shadow judge:** dispatch the `taste-judge` agent (model: sonnet) on the same comparison — pass the brief, the register's voice feature description, and both versions (A = current, B = edited). Append a row to `~/.claude/data/prose-craft/learning/judge-agreement.md` recording: date, register, edit name, the **human** pick, the **judge** pick, the judge's confidence, and whether they **agree** (columns: `| Date | Register | Edit | Human | Judge | Confidence | Agree? |`). The judge **gates nothing** — it only accumulates the calibration corpus that would later justify promoting it to a gatekeeper.
+4. **Shadow judge:** dispatch the `taste-judge` agent (model: sonnet) on the same comparison — pass the brief, the register's voice feature description, and both versions (A = current, B = edited). Append a row to `~/.claude/data/copydesk/learning/judge-agreement.md` recording: date, register, edit name, the **human** pick, the **judge** pick, the judge's confidence, and whether they **agree** (columns: `| Date | Register | Edit | Human | Judge | Confidence | Agree? |`). The judge **gates nothing** — it only accumulates the calibration corpus that would later justify promoting it to a gatekeeper.
 5. The edit passes the taste fraction iff the **human** picked the edited version (B).
 
 ### Step 10: Apply accepted edits and retain exemplars
@@ -223,10 +223,10 @@ For each edit the gate **accepted**, route the write by target type:
 
 | Target type | Write to |
 |---|---|
-| Register file (`registers/<name>.md`) | `~/.claude/data/prose-craft/registers/<name>.md` |
-| `accumulator.md` | `~/.claude/data/prose-craft/learning/accumulator.md` |
-| Other learning artifacts (`splits.md`, `ablation-log.md`, `judge-agreement.md`, etc.) | `~/.claude/data/prose-craft/learning/<filename>` |
-| Plugin-code file (agent body, skill body, scripts) | **Do not write to the install path.** Append a proposal to `~/.claude/data/prose-craft/learning/pending-upstream.md` for review and upstream PR. |
+| Register file (`registers/<name>.md`) | `~/.claude/data/copydesk/registers/<name>.md` |
+| `accumulator.md` | `~/.claude/data/copydesk/learning/accumulator.md` |
+| Other learning artifacts (`splits.md`, `ablation-log.md`, `judge-agreement.md`, etc.) | `~/.claude/data/copydesk/learning/<filename>` |
+| Plugin-code file (agent body, skill body, scripts) | **Do not write to the install path.** Append a proposal to `~/.claude/data/copydesk/learning/pending-upstream.md` for review and upstream PR. |
 
 The marketplace install path is owned by plugin updates — any local write there gets clobbered on next update. The `pending-upstream.md` queue keeps plugin-code edits visible without silently mutating disposable state.
 
@@ -243,7 +243,7 @@ The marketplace install path is owned by plugin updates — any local write ther
 ```
 ````
 
-The richer UX (e.g., a `/prose-craft-pending` skill that surfaces queued edits) is out of scope; lands in the planned extraction/learning rework.
+The richer UX (e.g., a `/copydesk-pending` skill that surfaces queued edits) is out of scope; lands in the planned extraction/learning rework.
 
 **Retain the winning exemplar.** For each accepted edit, append its **winning before/after pair** (the pipeline output vs. the user's edit that motivated it) to the target register's `## Demonstrated Edits` section, verbatim, no commentary. This is now a *validated* demonstration fed back into generation. FIFO-cap the section at 8-12 pairs: if adding one exceeds the cap, drop the oldest. (Skill/agent edits have no register section; their winning pairs are not retained here.)
 
@@ -251,7 +251,7 @@ Do not apply rejected edits. They go to the Rejected Edits buffer in Step 11.
 
 ### Step 11: Update accumulator
 
-After all candidates have been gated, update `~/.claude/data/prose-craft/learning/accumulator.md`.
+After all candidates have been gated, update `~/.claude/data/copydesk/learning/accumulator.md`.
 
 The accumulator is the **optimizer-side slow record**, not a graduation gate. Its observations are *evidence the learn-review agent uses to propose candidate edits* (see `agents/learn-review.md`); that agent's minibatch reflection decides reusable-vs-anecdotal directly. An observation is **never promoted to a rule change by recurrence count**. Promotion happens only when a proposed edit passes the held-out gate (the gate step in Mode 2 below).
 
@@ -343,7 +343,7 @@ The generative gate regenerates a held-out brief under two skill-states and comp
 
 ## Mode 3: Evaluator Correction
 
-Invoked with `/prose-craft-learn evaluators`. This is a **separate loop** from generator training, with its own ground truth and cadence. It corrects the review agents (prose-review, craft-review); it never runs while a generator run is in flight.
+Invoked with `/copydesk:learn evaluators`. This is a **separate loop** from generator training, with its own ground truth and cadence. It corrects the review agents (prose-review, craft-review); it never runs while a generator run is in flight.
 
 **Why separate.** The reviewers participate in every rollout (the scored piece is post-review). If you improve a reviewer mid-generator-run, you have moved the evaluator and broken score comparability. So: **freeze prose-review and craft-review during generator runs.** Improve them here, then **re-baseline** the held-out scores before the next generator round.
 
@@ -365,7 +365,7 @@ Do **not** score both agents the same way (the three error classes):
 1. Gather the accept/reject/modify ledger across recent pieces (suppression logs + review-findings).
 2. Compute the metrics above per agent.
 3. Propose evaluator edits **only** where the metric (not the raw rejection rate) justifies it: tighten prose-review triggers that over-fire; fix self-violations; flag hallucinations. Leave craft-review's recall-driven boldness alone.
-4. Approved evaluator edits route per the same table in Mode 2 Step 10. `agents/prose-review.md` and `agents/craft-review.md` are plugin-code files — append the proposed edit to `~/.claude/data/prose-craft/learning/pending-upstream.md` for upstream PR. Do not write to the marketplace install path.
+4. Approved evaluator edits route per the same table in Mode 2 Step 10. `agents/prose-review.md` and `agents/craft-review.md` are plugin-code files — append the proposed edit to `~/.claude/data/copydesk/learning/pending-upstream.md` for upstream PR. Do not write to the marketplace install path.
 5. **Re-baseline.** Because the evaluators just changed, previously recorded held-out scores are stale. Note in the bootstrap/run log that held-out scores must be re-measured before the next generator round.
 
 ## The ablation operation
@@ -378,17 +378,17 @@ Rules accrete; some stop earning their place. Ablation is the metabolism that re
 2. **Regenerate the selection set** (`D_sel`) under the dropped-rule skill-state, k samples per brief (the generative-gate harness).
 3. **Score against the gate.** Compare dropped-rule output to with-rule output by the pairwise step (for discipline rules, also run the discipline script).
 4. **Decide.** If the gate score does **not** fall when the rule is gone, the rule wasn't earning its place: **keep the drop** (remove the rule). If the score falls, the rule is load-bearing: **restore it**.
-5. **Log** the keep/remove decision and the score delta per rule to `~/.claude/data/prose-craft/learning/ablation-log.md`.
+5. **Log** the keep/remove decision and the score delta per rule to `~/.claude/data/copydesk/learning/ablation-log.md`.
 
 This is the inverse of the edit gate: an edit is kept only if it *improves* the held-out score; a rule is dropped only if its removal *doesn't hurt* it. Both protect the held-out score from drift.
 
 **Cadence (interim default):** sweep before each release, or when a file's rule count crosses a threshold (e.g. a review-agent section passing ~10 rules). A fixed recurring cadence is deferred until observed rule-growth justifies one.
 
 **Initial sweep targets** (run at bootstrap), the most recently graduated rules, to test whether they earn their place:
-- prose-review **#25 Performed Specificity** and **#26 Hollow Anadiplosis** (reference target is `agents/prose-review.md` in the marketplace install at `~/.claude/plugins/cache/prose-craft/prose-craft/<ver>/agents/prose-review.md` — read-only. Any rule drop that survives the gate is a plugin-code edit and routes to `~/.claude/data/prose-craft/learning/pending-upstream.md` for upstream PR per Mode 2 Step 10.)
+- prose-review **#25 Performed Specificity** and **#26 Hollow Anadiplosis** (reference target is `agents/prose-review.md` in the marketplace install at `~/.claude/plugins/cache/copydesk/copydesk/<ver>/agents/prose-review.md` — read-only. Any rule drop that survives the gate is a plugin-code edit and routes to `~/.claude/data/copydesk/learning/pending-upstream.md` for upstream PR per Mode 2 Step 10.)
 - the SKILL.md **colon-for-inline-elaboration** rule (also enforced by the discipline script).
 
-Record each as a keep/remove decision + score delta in `~/.claude/data/prose-craft/learning/ablation-log.md`.
+Record each as a keep/remove decision + score delta in `~/.claude/data/copydesk/learning/ablation-log.md`.
 
 ## Notes
 

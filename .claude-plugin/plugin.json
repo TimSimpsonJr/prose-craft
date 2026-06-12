@@ -1,8 +1,20 @@
 {
-  "name": "prose-craft",
-  "version": "2.1.0",
-  "description": "Voice-driven prose quality system with modular registers, architectural craft rules, a dual review gate for AI pattern detection and craft depth, and a learning loop that sharpens rules from your edits.",
+  "name": "copydesk",
+  "version": "3.0.0",
+  "description": "Turns findings into publishable writing in your own voice: drafts from your raw material, runs every draft through a dual review gate that catches AI tells and voice drift, and sharpens its rules from your hand edits. Part of the Fieldwork investigative suite.",
   "author": {
-    "name": "Tim Simpson"
-  }
+    "name": "Tim Simpson",
+    "email": "tim@timsimpsonjr.com"
+  },
+  "homepage": "https://github.com/TimSimpsonJr/copydesk",
+  "repository": "https://github.com/TimSimpsonJr/copydesk",
+  "license": "MIT",
+  "keywords": [
+    "writing",
+    "prose",
+    "editing",
+    "voice",
+    "ai-detection",
+    "claude-code"
+  ]
 }

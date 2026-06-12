@@ -1,9 +1,9 @@
 ---
-name: prose-craft
+name: write
 description: Use before writing ANY text for outside consumption — blog posts, articles, emails, social media, documentation aimed at readers, letters, advocacy copy, newsletter content. Produces engaging, human prose and runs a review gate on all output.
 ---
 
-# Prose Craft
+# Copydesk
 
 You are writing for a human audience. Every sentence should earn the next one.
 
@@ -11,22 +11,22 @@ You are writing for a human audience. Every sentence should earn the next one.
 
 Before generating anything, verify the user-data directory is ready:
 
-1. Check whether `~/.claude/data/prose-craft/registers/` contains at least one register file other than `register-template.md`.
+1. Check whether `~/.claude/data/copydesk/registers/` contains at least one register file other than `register-template.md`.
 2. If yes, proceed with normal generation (skip the rest of this section).
-3. If no register files exist (or the directory is missing), tell the user: "prose-craft isn't initialized on this machine yet. Run `/prose-craft-init` to create your first register." Stop — do not attempt generation.
+3. If no register files exist (or the directory is missing), tell the user: "copydesk isn't initialized on this machine yet. Run `/copydesk:init` to create your first register." Stop — do not attempt generation.
 
-This check is intentionally narrow: this skill does generation, not setup. Anything that touches the data directory or walks the user through extraction lives in `/prose-craft-init`.
+This check is intentionally narrow: this skill does generation, not setup. Anything that touches the data directory or walks the user through extraction lives in `/copydesk:init`.
 
 ## Register Detection
 
 On invocation, determine which register to use from context by reading the per-register frontmatter at the user-data path:
 
-1. Glob `~/.claude/data/prose-craft/registers/*.md`, excluding `register-template.md`.
+1. Glob `~/.claude/data/copydesk/registers/*.md`, excluding `register-template.md`.
 2. For each file, read the YAML frontmatter block at the top. If a file has no frontmatter or no `triggers` field, skip it (it's not a configured register).
-3. Match the current writing context against each register's `triggers` list. If exactly one register matches, use it. If multiple match, ask the user which. If none match — **including registers whose `triggers:` array is empty** — ask the user which register to use, listing all registers found in the directory so partially-configured registers are still selectable. If no register files are configured at all, tell the user to run `/prose-craft-init`.
+3. Match the current writing context against each register's `triggers` list. If exactly one register matches, use it. If multiple match, ask the user which. If none match — **including registers whose `triggers:` array is empty** — ask the user which register to use, listing all registers found in the directory so partially-configured registers are still selectable. If no register files are configured at all, tell the user to run `/copydesk:init`.
 4. Read the chosen register's body (everything after the closing `---` of the frontmatter) — that's the voice feature description.
 
-The register's name is the filename without the `.md` extension (so `~/.claude/data/prose-craft/registers/personal.md` is the `personal` register).
+The register's name is the filename without the `.md` extension (so `~/.claude/data/copydesk/registers/personal.md` is the `personal` register).
 
 **Ambiguous:** Ask the user which register to use.
 
@@ -140,18 +140,18 @@ After generating text for outside consumption, dispatch both review agents befor
 Use the Agent tool to launch TWO agents in parallel:
 
 1. **Prose review agent** (model: sonnet):
-   - `subagent_type`: "prose-craft:prose-review"
+   - `subagent_type`: "copydesk:prose-review"
    - `prompt`: Include the generated text AND the active register's voice feature description (from the register file). The register features enable voice drift detection.
    - `description`: "Review prose for AI patterns"
 
 2. **Craft review agent** (model: sonnet):
-   - `subagent_type`: "prose-craft:craft-review"
+   - `subagent_type`: "copydesk:craft-review"
    - `prompt`: Include the generated text.
    - `description`: "Review prose for craft depth"
 
 Wait for both agents to return.
 
-**Snapshot:** Before processing results, invoke the `prose-craft-learn` skill with `snapshot post-review` to save the current text and review findings.
+**Snapshot:** Before processing results, invoke the `copydesk:learn` skill with `snapshot post-review` to save the current text and review findings.
 
 **Processing results:**
 
@@ -165,6 +165,6 @@ Wait for both agents to return.
 
 The user accepts, rejects, or modifies each row individually.
 
-**Snapshot (suppression ledger):** Once you have decided the disposition of every finding from both agents — which became advisory rows (surfaced), which you silently fixed (hard fails), and which you dropped without surfacing or fixing (suppressed) — invoke the `prose-craft-learn` skill with `snapshot suppression`, passing the full set of findings and each finding's disposition. This is the orchestrator's own decision, made before the user touches the table. Log honestly: record what you dropped, not only what you acted on. This is the Gap-F instrumentation — it reveals whether dropped suggestions are a reviewer problem (proposing badly) or an orchestrator-filtering problem (opposite fixes).
+**Snapshot (suppression ledger):** Once you have decided the disposition of every finding from both agents — which became advisory rows (surfaced), which you silently fixed (hard fails), and which you dropped without surfacing or fixing (suppressed) — invoke the `copydesk:learn` skill with `snapshot suppression`, passing the full set of findings and each finding's disposition. This is the orchestrator's own decision, made before the user touches the table. Log honestly: record what you dropped, not only what you acted on. This is the Gap-F instrumentation — it reveals whether dropped suggestions are a reviewer problem (proposing badly) or an orchestrator-filtering problem (opposite fixes).
 
-**Snapshot:** After all advisory rows have been processed, invoke the `prose-craft-learn` skill with `snapshot post-fixes` to save the current text.
+**Snapshot:** After all advisory rows have been processed, invoke the `copydesk:learn` skill with `snapshot post-fixes` to save the current text.
