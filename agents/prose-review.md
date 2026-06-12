@@ -1,6 +1,6 @@
 ---
 name: prose-review
-description: Reviews prose for AI patterns, banned phrases, voice drift, and structural issues. Dispatched by the prose-craft skill's review gate after text generation. Receives generated text plus the active register's voice feature description.
+description: Reviews prose for AI patterns, banned phrases, voice drift, and structural issues. Dispatched by the copydesk skill's review gate after text generation. Receives generated text plus the active register's voice feature description.
 model: sonnet
 tools: Read
 ---

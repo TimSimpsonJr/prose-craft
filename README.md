@@ -1,136 +1,111 @@
-# prose-craft
+# Copydesk
 
-A Claude Code plugin that writes in your voice.
+![License](https://img.shields.io/badge/license-MIT-blue) ![Version](https://img.shields.io/badge/version-3.0.0-informational) ![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-8A3FFC) ![Python](https://img.shields.io/badge/python-3.12-3776AB) ![Status](https://img.shields.io/badge/status-beta-orange)
 
-## What this does
+Copydesk turns findings into publishable writing in your own voice. You feed it your raw material (an investigation's findings, research notes, a transcript, an outline) and it drafts in your own voice, then runs the draft past two reviewers before you ever see it: one that hunts AI tells and voice drift, one that checks whether the writing actually lands. The output comes back clean, with a short advisory table you can accept or reject row by row.
 
-Prose-craft extracts your distinctive writing patterns from samples of your own writing and uses them to generate text that sounds like you, not like AI. It uses a modular register system, so you can have different voices for different contexts (personal essays vs. advocacy copy, for example), and a dual review gate that catches AI patterns and evaluates craft depth before you see the output.
-
-## Installation
-
-Paste this repo's URL into the Claude Code desktop app:
-
-```
-https://github.com/TimSimpsonJr/prose-craft
-```
-
-Claude Code will install it as a plugin automatically. You can also install from the CLI:
-
-```bash
-/install-plugin https://github.com/TimSimpsonJr/prose-craft
-```
-
-## Quick start
-
-1. Install the plugin (see above)
-2. Run `/prose-craft-init` — the init skill creates `~/.claude/data/prose-craft/`, copies the starter template, and walks you through extracting your first voice register (~30 minutes, requires Claude Sonnet access). Re-run any time to add a new register.
-3. Once at least one register is configured, `/prose-craft` activates automatically whenever you ask Claude to write text for outside consumption.
-
-Your personal data (registers, accumulator, snapshots) lives at `~/.claude/data/prose-craft/` and is invariant under plugin updates — feel free to update the plugin from the marketplace without worrying about losing your voice extractions.
+It learns the voice from samples of your own writing, and it keeps refining from your edits. Every time you fix a draft by hand, Copydesk can study what you changed and sharpen its rules so the next draft needs fewer fixes. Your writing, your registers, and everything the learning loop accumulates stay on your machine, inside your own Claude Code session.
 
 ## How it works
 
-### Registers
+**Your raw material** → register select (pick the voice that fits) → draft in your voice → a **dual review gate** runs `prose-review` and `craft-review` in parallel → hard fails are fixed silently and everything else comes back as an advisory table → **your final draft**. When you edit it by hand, the **learning loop** studies the change and sharpens the rules for next time.
 
-A register is a voice profile for a specific kind of writing. You might have one for casual posts and another for professional articles. Each register contains a voice feature description extracted from your own writing samples, organized into four sections: vocabulary, sentence structure, rhetorical techniques, and voice qualities.
+## What you can do with it
 
-When you ask Claude to write something, the skill detects which register fits the context and loads that register's voice features as the primary writing instructions.
+- **Write up findings in your own voice.** Hand Copydesk an investigation's findings and ask it to write the piece. It activates automatically whenever you ask Claude to write text for an audience (a blog post, an article, advocacy copy, an email, a newsletter), drafts in the register that fits, and runs the review gate before you see anything.
+- **Keep separate voices for separate work.** Configure one register for advocacy copy and another for personal essays. Copydesk detects which fits the context and loads that voice profile as the primary instruction. If it's ambiguous, it asks which register to use.
+- **Catch AI tells before they reach the page.** The gate fixes em dashes, the "this isn't X, this is Y" construction, and the ChatGPT-isms silently, and surfaces everything else (voice drift, structural monotony, dead transitions) as advisory rows you decide on.
+- **Sharpen the voice from your edits.** Edit a draft by hand, then run `/copydesk:learn` to study what you changed. It diffs the pipeline output against your hand edits and proposes bounded improvements to your register, the skill rules, or the review agents.
+- **Build the voice once from your own samples.** Run `/copydesk:init`: it sets up your data directory and walks you through a two-pass extraction over 10-20 samples of your writing, producing a register that captures your vocabulary, sentence structure, rhetorical moves, and voice qualities. Run it again any time to add another register.
 
-### Craft rules
+## Why it's useful
 
-On top of your voice features, the skill applies a shared set of architectural craft rules:
+Most AI writing reads like AI writing. It puffs up significance, leans on the same dozen transition words, and forces every idea into a group of three. A reader can feel it even when they can't name it. Copydesk's job is to make the writing sound like a specific person wrote it, because a specific person did the thinking, and then to defend that voice with a review pass that knows exactly what machine writing looks like.
 
-- **Concrete-first:** lead with a person, a number, a scene, or a specific object. Abstraction is earned, never assumed.
-- **Opening moves:** every piece starts with a deliberate first move (arresting fact, person in a situation, specific scene, counterintuitive claim, or confession).
-- **Naming:** when introducing a pattern or concept, name it in 2-4 words. Named concepts travel. Unnamed concepts don't.
-- **Structural unpredictability:** vary paragraph and section architecture deliberately. Never settle into a rhythm a compression algorithm could predict.
+The two reviewers pull in deliberately different directions. One is tuned for precision: it fires rarely and is meant to be right, catching banned phrases and voice drift. The other casts wide for craft opportunities you'd otherwise miss (a pattern you described but never named, an ending that summarizes instead of landing). Most of what it surfaces gets rejected, and that's the design working. You stay in control of every judgment call. Hard fails get fixed for you; everything else is a suggestion you can wave off.
 
-It also enforces a banned phrase list that catches common AI writing patterns (em dashes, "delve," "it's important to note," the "this isn't X, this is Y" construction, and others).
+The learning loop compounds. The initial extraction gets you a usable voice. Your edits make it precise. Over a handful of pieces, the drafts tend to need fewer corrections, because the system has watched what you actually do and adjusted its rules to match, with a held-out gate making sure each change is a real improvement and not just noise.
 
-### Review gate
+## Quick start
 
-After generating text, the skill dispatches two review agents in parallel before you see the output:
+Install it from the Fieldwork marketplace:
 
-**Prose review** checks for:
-- Banned phrases and AI vocabulary (hard fails, fixed automatically)
-- Voice drift against your register's feature description
-- Structural monotony (repeated sentence architecture, uniform paragraph length)
-- Missing self-correction, grounding, or personality
+```
+/plugin marketplace add TimSimpsonJr/fieldwork-plugins
+/plugin install copydesk@fieldwork
+```
 
-**Craft review** evaluates:
-- Naming opportunities (patterns described but not labeled)
-- Aphoristic destinations (does the piece end on a sentence that travels?)
-- Central-point dwelling (does the piece give disproportionate space to its load-bearing point?)
-- Structural literary devices (metaphors that carry argumentative weight, not decoration)
-- Human-moment anchoring (abstractions grounded in specific people or scenes)
+Build your voice once. Run `/copydesk:init` (about 30 minutes, using Claude Sonnet). It creates your data directory at `~/.claude/data/copydesk/` and walks you through gathering writing samples and two extraction passes, leaving you with a register Copydesk draws on automatically.
 
-Hard fails are fixed before you see the text. Everything else comes back as advisory tables from each agent.
+After that, just ask Claude to write something for an audience. The skill activates on its own, drafts in the register that fits, runs the review gate, and hands you a clean draft with an advisory table.
 
-**Prose review advisory table:**
+When you've edited a draft by hand and want the system to learn from it:
+
+```
+/copydesk:learn path/to/your-edited-file.md
+```
+
+## Under the hood
+
+The mechanics behind a draft.
+
+### The two reviewers
+
+After Copydesk drafts a piece, it dispatches both review agents in parallel before you see the text. They are tuned for opposite jobs:
+
+| Agent          | Tuned for     | What it checks                                                                                   | How its findings land                    |
+|----------------|---------------|--------------------------------------------------------------------------------------------------|------------------------------------------|
+| `prose-review` | high precision | banned phrases, the fatal pattern, em dashes, ChatGPT-isms (hard fails); plus voice drift, mid-tier AI vocabulary, and structural patterns (advisory) | hard fails fixed silently; rest advisory |
+| `craft-review` | high recall    | aphoristic endings, unnamed concepts, central-point dwelling, structural literary devices, human-moment anchoring | advisory opportunities                   |
+
+`prose-review` carries a reference catalog of AI writing patterns (undue emphasis on significance, copula avoidance, rule-of-three overuse, generic positive conclusions, and the rest). `craft-review` self-checks its own suggestions against the banned-pattern list before it emits them, so it can't hand you a "fix" that smuggles in a fatal pattern.
+
+### Hard fails vs. advisories
+
+Two outcomes come out of the gate. **Hard fails** (em dashes, the "this isn't X, this is Y" fatal pattern, AI vocabulary, ChatGPT-isms) are fixed before you ever see the draft. Whenever a fatal pattern gets rewritten, a separate `fatal-pattern-recheck` agent independently confirms the rewrite didn't reintroduce it (the writer and the checker are deliberately different dispatches). **Everything else** comes back as an advisory table:
 
 | # | Line | Pattern | Current | Proposed fix |
 |---|------|---------|---------|--------------|
-| 1 | "Furthermore, the committee decided..." | Mid-tier AI vocabulary | "Furthermore" is a dead AI transition | Cut it. Start the sentence at "The committee decided..." |
-| 2 | "This is important because..." | Frictionless transition | 4 transitions in a row and none of them feel abrupt | Drop the transition. Start the next paragraph mid-thought and let the reader fill the gap. |
-| 3 | "The system was efficient. The system was fast. The system was reliable." | Structural monotony | 3 sentences in a row with the same shape | Vary: "The system was efficient. Fast, too. But reliable is the word that kept showing up in the post-mortems." |
-
-**Craft review advisory table:**
-
-| Dimension | Rating | Notes | Proposed improvement |
-|-----------|--------|-------|---------------------|
-| Naming | Opportunity | "The policy created a strange dynamic where everyone pretends the rules matter" describes a pattern in 2 sentences but never labels it | Name it: "compliance theater" — compresses the dynamic into something portable |
-| Aphoristic destination | Opportunity | Piece ends with "This matters because it affects everyone" — a generic summary that could close any article | End on the mechanism: "Four inspectors for 2,000 facilities. A confession dressed up as a staffing decision." |
-| Central-point dwelling | Strong | Enforcement failure gets too much of the piece on purpose and comes back twice. That's the right call. | |
-| Structural literary devices | Opportunity | Nothing in here is doing double duty. Every sentence means one thing and stops. | The committee lifecycle ("conversation → process → ritual") could structure the whole analysis instead of sitting in one paragraph |
-| Human-moment anchoring | Strong | Opens with one inspector walking into one facility. The abstraction earns its space after that. | |
+| 1 | "Furthermore, the committee decided..." | Dead AI transition | "Furthermore" is a dead transition | Cut it. Start the sentence at "The committee decided..." |
 
 You accept, reject, or modify each row individually.
 
-### Learning from your edits
+### The learning loop
 
-After you manually edit a piece that was generated with prose-craft, invoke `/prose-craft-learn` to analyze what you changed. The skill captures three snapshots during the writing process (after review agents run, after you accept/reject advisories, and after your manual edits), then dispatches a learning agent that diffs the snapshots and proposes improvements to your register, skill rules, or review agents.
+After you edit a draft by hand, `/copydesk:learn` diffs the pipeline's output against your hand edits and dispatches the `learn-review` optimizer, which proposes a small, bounded set of candidate edits to your register, the skill rules, or the review agents. Nothing is applied on recurrence count alone. Each candidate has to pass a held-out gate:
 
-Observations that don't have enough evidence yet get stored in an accumulator file. Over multiple pieces, patterns accumulate until they cross the evidence threshold and get promoted to concrete rule changes. Observations that stop recurring go stale and get cleaned up automatically.
+| Edit type       | What it changes                                 | How it's gated                                                                 |
+|-----------------|-------------------------------------------------|--------------------------------------------------------------------------------|
+| Discipline edit | objective banned patterns (em dashes, colons-for-inline-elaboration, caps-on-phrases, the banned list, the fatal pattern) | `scripts/discipline_check.py` plus the `fatal-pattern-recheck` agent           |
+| Taste edit      | voice, craft, structure, word choice            | a human A/B pairwise pick, with the `taste-judge` agent logging a shadow vote   |
 
-The learning loop is the fastest way to sharpen your voice registers after the initial extraction. Every piece you write and edit teaches the system something.
+The discipline script is a regression guardrail (it confirms a change didn't introduce a new violation), never an optimization target. On taste edits you are the only gatekeeper; the shadow judge only accumulates calibration data. An edit lands only if it strictly improves the held-out result, and observations that stop recurring go stale and get cleaned up on their own.
 
-## Setup
+### Project layout
 
-Run `/prose-craft-init` after installing the plugin. The init skill walks you through extraction interactively. The process takes about 30 minutes and requires Claude Sonnet access — you'll gather writing samples, run two extraction passes, and end up with a register file at `~/.claude/data/prose-craft/registers/<name>.md` that captures your voice (with `triggers:` frontmatter declaring the contexts that activate it).
+See [MANIFEST.md](MANIFEST.md) for the full file tree and how the pieces fit together.
 
-For a top-down look at the manual process underneath the init skill — useful if you want to understand what's happening or run it by hand — see `setup/extraction-guide.md`.
+> [!NOTE]
+> **What you need:** Python 3.12 and [Claude Code](https://docs.anthropic.com/en/docs/claude-code), and nothing else. Copydesk's one script is standard-library Python, so there's nothing extra to install. (mise, Node, and Docker are contributor-only.)
 
-## File structure
+> [!IMPORTANT]
+> **Your data & privacy:** Copydesk runs entirely inside your own Claude Code session. Your writing samples, your drafts, your registers, and everything the learning loop accumulates stay on your machine; nothing is uploaded to a Copydesk service, because there isn't one. Your registers and all learning state (the accumulator, snapshots, and run logs) live in `~/.claude/data/copydesk/` on your own machine, kept separate from the plugin code so a plugin update never touches them. The review gate scrubs em dashes, AI vocabulary, and ChatGPT-isms automatically before a draft reaches you. The one bundled feature note: Copydesk writes *outward-facing prose*, so it does not redact PII for you. If a draft draws on findings that contain names, addresses, or other sensitive details, treat redaction as your responsibility (or hand that step to Magpie before you write).
 
+## For developers
+
+```bash
+pytest tests/ -v
 ```
-prose-craft/                          # The plugin (this repo, shipped via marketplace)
-  .claude-plugin/plugin.json          # Plugin manifest
-  skills/
-    prose-craft/SKILL.md              # Main skill: register detection (frontmatter-based), craft rules, review gate
-    prose-craft-learn/SKILL.md        # Learning skill: snapshots, analysis, accumulator
-    prose-craft-init/SKILL.md         # First-run setup + extraction walkthrough
-  agents/
-    prose-review.md                   # AI pattern detection, banned phrases, voice drift
-    craft-review.md                   # Naming, endings, dwelling, literary devices
-    learn-review.md                   # Diff analysis, pattern extraction, rule proposals
-  template-data/                      # Read-only starter content (copied to ~/.claude/data/ on first run)
-    registers/register-template.md
-    learning/accumulator.md
-  setup/                              # Reference prompts and guides
-    extraction-guide.md
-    sample-collection.md
-    pass-1-prompt.md
-    pass-2-prompt.md
-    brief-stripping-guide.md
 
-~/.claude/data/prose-craft/           # Your personal data (NOT in this repo; survives plugin updates)
-  registers/                          # Your voice registers with triggers: frontmatter
-  learning/
-    accumulator.md                    # Accumulated observations
-    snapshots/                        # Per-piece snapshots
-    extraction-artifacts/             # Pass-1/pass-2 outputs from each extraction run
-    pending-upstream.md               # Queue of plugin-code edits the learning loop wants to upstream via PR
-```
+The Python suite is 20 tests for `scripts/discipline_check.py`, all offline, no API key needed. The script is standard-library only (`re`), so there is nothing to install beyond Python itself.
+
+**Requirements:** Python 3.12 and [Claude Code](https://docs.anthropic.com/en/docs/claude-code). No third-party Python dependencies.
+
+## Part of the Fieldwork suite
+- [Researcher](https://github.com/TimSimpsonJr/researcher): gather sources into cited notes
+- [Magpie](https://github.com/TimSimpsonJr/magpie): analyze FOIA/data into findings
+- [Librarian](https://github.com/TimSimpsonJr/librarian): organize findings into linked vault notes (shared layer)
+- [Copydesk](https://github.com/TimSimpsonJr/copydesk): write findings up in your voice
 
 ## License
 

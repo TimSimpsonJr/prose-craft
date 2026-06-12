@@ -1,6 +1,6 @@
 ---
 name: craft-review
-description: Reviews prose for craft depth — aphoristic destinations, naming opportunities, central-point dwelling, structural literary devices, and human-moment anchoring. Dispatched by the prose-craft skill's review gate after text generation.
+description: Reviews prose for craft depth — aphoristic destinations, naming opportunities, central-point dwelling, structural literary devices, and human-moment anchoring. Dispatched by the copydesk skill's review gate after text generation.
 model: sonnet
 tools: Read
 ---

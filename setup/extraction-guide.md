@@ -2,7 +2,7 @@
 
 ## What this does
 
-The extraction process analyzes your writing to produce a voice feature description. The prose-craft skill uses this description to generate text that sounds like you instead of like AI. The whole process takes about 30 minutes.
+The extraction process analyzes your writing to produce a voice feature description. The copydesk skill uses this description to generate text that sounds like you instead of like AI. The whole process takes about 30 minutes.
 
 ## Before you start
 
@@ -35,16 +35,16 @@ In the same or a new Sonnet conversation, paste the prompt from `pass-2-prompt.m
 
 ### Step 6: Create your register file
 
-Use `/prose-craft-init` to create a new register interactively. The init skill walks you through extracting your voice from samples (via Sonnet) and writes the resulting register file (with its `triggers:` frontmatter declaring activation contexts) to `~/.claude/data/prose-craft/registers/<your-register-name>.md`.
+Use `/copydesk:init` to create a new register interactively. The init skill walks you through extracting your voice from samples (via Sonnet) and writes the resulting register file (with its `triggers:` frontmatter declaring activation contexts) to `~/.claude/data/copydesk/registers/<your-register-name>.md`.
 
-If you prefer the manual path, copy `~/.claude/data/prose-craft/registers/register-template.md` to `~/.claude/data/prose-craft/registers/<your-register-name>.md`, paste your pass-2 output into the body, and add a `triggers:` frontmatter array listing the writing contexts that should activate this register. The `prose-craft` skill discovers registers by globbing this directory and reading frontmatter — no SKILL.md edits required.
+If you prefer the manual path, copy `~/.claude/data/copydesk/registers/register-template.md` to `~/.claude/data/copydesk/registers/<your-register-name>.md`, paste your pass-2 output into the body, and add a `triggers:` frontmatter array listing the writing contexts that should activate this register. The `copydesk` skill discovers registers by globbing this directory and reading frontmatter — no SKILL.md edits required.
 
 ### Step 7: Install and test
 
 Test the plugin:
 
 ```
-claude --plugin-dir /path/to/prose-craft
+claude --plugin-dir /path/to/copydesk
 ```
 
 Ask Claude to write something and see if the voice matches. If it doesn't, check your register file for vague features and re-run pass 2 with more specific instructions.

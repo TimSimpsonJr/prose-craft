@@ -1,6 +1,6 @@
 ---
 name: fatal-pattern-recheck
-description: Independent re-checker confirming a fatal-pattern silent rewrite did not reintroduce the pattern. Dispatched by the prose-craft skill after it rewrites a fatal-pattern hard fail, as a separate check from the rewrite itself.
+description: Independent re-checker confirming a fatal-pattern silent rewrite did not reintroduce the pattern. Dispatched by the copydesk skill after it rewrites a fatal-pattern hard fail, as a separate check from the rewrite itself.
 model: sonnet
 tools: Read
 ---
